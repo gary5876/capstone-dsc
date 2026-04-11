@@ -1,0 +1,12 @@
+.env
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
+
+# DQ4AI tool (external dependency)
+dq4ai/
+
+# Data files
+data/
