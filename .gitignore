@@ -5,6 +5,9 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Office lock/temp files (PowerPoint, Excel 등 열려있을 때 생성)
+~$*
+
 # DQ4AI tool (external dependency)
 dq4ai/
 
