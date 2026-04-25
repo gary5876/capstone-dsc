@@ -1,6 +1,6 @@
 # 노트북 01 실행 로그: 환경 세팅 & 베이스라인
 
-- **실행 시각**: 2026-04-12 13:48:33
+- **실행 시각**: 2026-04-25 06:41:28
 - **BASE 경로**: /content/drive/MyDrive/capstone/dsc
 
 ## 1. 데이터 다운로드
@@ -15,9 +15,9 @@
 
 | 데이터셋 | DSC Score | 등급 | completeness | uniqueness | validity | consistency | outlier_ratio | class_balance | feature_correlation |
 |---|---|---|---|---|---|---|---|---|---|
-| TelcoCustomerChurn | 97.65 | A | 1.0 | 1.0 | 0.9999 | 1.0 | 1.0 | 0.5307 | 1.0 |
-| SouthGermanCredit | 97.45 | A | 1.0 | 1.0 | 1.0 | 1.0 | 0.945 | 0.6 | 1.0 |
-| letter | 98.11 | A | 1.0 | 0.9334 | 1.0 | 1.0 | 0.9671 | 0.9542 | 1.0 |
+| TelcoCustomerChurn | 95.31 | A | 1.0 | 1.0 | 0.9999 | 1.0 | 1.0 | 0.5307 | 1.0 |
+| SouthGermanCredit | 95.73 | A | 1.0 | 1.0 | 1.0 | 1.0 | 0.945 | 0.6 | 1.0 |
+| letter | 98.38 | A | 1.0 | 0.9334 | 1.0 | 1.0 | 0.9671 | 0.9542 | 1.0 |
 
 ## 3. 베이스라인 모델 성능
 
