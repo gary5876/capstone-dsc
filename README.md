@@ -151,14 +151,51 @@ dsc/
 
 ---
 
-## 현재 실험 결과 요약 (2026-04-13 기준)
+## 실험 결과 (v4 정식, 2026-04-27)
 
-| 지표 | 값 | 판정 |
-|---|---|---|
-| Pearson r (DSC ↔ F1) | 0.085 (p=0.147) | 비유의 |
-| Spearman ρ | -0.022 (p=0.708) | 비유의 |
-| DSC 등급 간 ANOVA | F=0.79, p=0.375 | 비유의 |
+| 지표 | v3.2 정식 | **v4 정식** | 변화 |
+|---|---:|---:|---|
+| Pearson r (DSC ↔ F1) | 0.420 | **0.598** | +0.18 |
+| r² (선형 분산 설명력) | 0.176 | **0.358** | +0.18 |
+| Spearman ρ | 0.365 | **0.628** | +0.26 |
+| 등급별 ANOVA F | 32.9 | **84.4** | +51.5 |
+| 비선형 R² (RF 5-fold) | — | **0.632 ± 0.091** | 신규 |
+| Polluter hold-out PASS | 4/5 | **5/5** | 회복 |
+| 데이터셋 단위 모두 유의 | 2/3 | **3/3** | Telco 유의 진입 |
 
-**현재 DSC 지표 세트는 ML 성능을 유의하게 예측하지 못합니다.** 원인은 DSC 엔진이 feature_accuracy·class_balance 오염을 충분히 감지하지 못하는 데 있으며, 개선 방향은 [`documents/decisions/ADR-008`](documents/decisions/ADR-008-DSC엔진-오염감지-개선-필요.md)에 정리되어 있습니다.
+상세 결과·차트는 `results/04_execution_log.md`, 결함별 분석은 `documents/reports/20260427-04-v4-정식결과확정.md` 참조.
 
-자세한 결과와 차트는 [`results/04_execution_log.md`](results/04_execution_log.md) 참조.
+### 주장 (Claim — 정직화)
+
+> **"5종 합성 오염 시나리오에서 정형 분류 데이터에 대한 DSC와 ML F1 macro 사이에 통계적으로 유의한 양의 상관관계가 존재한다."**
+
+"DSC가 ML 성능을 예측한다"는 **주장하지 않습니다.** r²=0.37(선형) / 0.56(비선형)은 부분 설명력으로, 본 연구는 상관관계 입증에 한정됩니다.
+
+---
+
+## 한계 (Limitations — 자체 인정)
+
+reviewer 공격을 사전 방어하기 위해 본 연구의 본질적 한계 6가지를 명시합니다.
+
+1. **합성 오염 시나리오 한정 (F5)**
+   본 연구는 5종 DQ4AI polluter (completeness, uniqueness, consistent_repr, class_balance, feature_accuracy)로 만든 합성 오염에서의 상관관계를 입증합니다. 자연 발생 노이즈, 라벨 누락, 시계열·텍스트·이미지 데이터로의 일반화는 후속 연구로 남깁니다.
+
+2. **Baseline = 원본 가정 (F8)**
+   모든 점수는 원본 데이터를 100점 baseline으로 anchored됩니다. 원본의 자연 노이즈는 별도 검증되지 않습니다.
+
+3. **선형 가법 결합의 한계 (F2 / F4)**
+   DSC = Σ wᵢ sᵢ는 차원 간 독립을 가정한 선형 근사입니다. 비선형 결합(RF) R²=0.56이 선형 r²=0.37보다 높음 — DSC 차원에 정보는 풍부하나 가중합으로는 일부만 활용됩니다.
+
+4. **F1 macro 외 일부 지표에서 신호 약화 (F10)**
+   accuracy r=0.51, AUC r=0.46. F1 macro와 일관된 양의 상관이지만 절대값은 차이가 있습니다.
+
+5. **표본 단위 (dataset, polluter, level) 87건 — 데이터셋 단위 n=3 (F7)**
+   - letter r=0.80, SouthGerman r=0.24, **Telco r=0.28** (셋 모두 v4 시뮬에서 p<0.05 유의)
+   - Telco는 onehot 후 13,615차원 sparse로, 본 setup의 단순 전처리에서 선형·트리 모델 학습이 약함 (ADR-010 참조). DSC 결함이 아닌 ML setup의 한계.
+
+6. **모델 클래스별 r 격차**
+   default 가중치에서 모델별 r=0.31~0.71. 모델 클래스별 가중치 프로파일(noise_sensitive / tree_based) 적용 시 두 그룹 모두 r이 +0.07~0.10 향상.
+
+---
+
+자세한 결과와 차트는 [`results/04_execution_log.md`](results/04_execution_log.md), 진단·개선 보고서는 [`documents/reports/`](documents/reports/) 참조.
