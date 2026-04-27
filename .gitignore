@@ -13,3 +13,6 @@ dq4ai/
 
 # Data files
 data/
+
+# 작업 중 생긴 백업 파일
+*.baseline_only_backup
