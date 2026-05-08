@@ -21,29 +21,74 @@ webplatform이 사용 중인 진단 엔진은 **모든 데이터를 분류로 �
 
 ---
 
-## 1. 왜 바꾸는지
+## 1. v3.2 통합 이후 무엇이 바뀌었나
 
-### v3.2 통합 시점 이후 본 연구의 변화
+webplatform이 v3.2 엔진을 통합한 시점(2026-04-28) 기준으로, 본 연구는 두 단계 발전했음. 각 단계의 동기와 결과를 시간 순으로 설명.
 
-| 변경 | 결과 |
-|---|---|
-| `value_accuracy` 지표가 정의 모순이라 제거 | r 0.42 → 0.598 (DSC↔모델성능 상관) |
-| 절대 품질 지표 2개 신설 (`label_consistency`, `feature_informativeness`) | 폴루션 감지력 향상 |
-| **회귀 cell 추가** | 회귀 데이터 진단 가능 |
-| (옵션) 이미지 cell 사전등록 | 이미지 데이터도 수용 가능 (후속) |
+### 1-1. v3.2 → v4 — 메타 결함 일괄 해결 (2026-04-27)
 
-### webplatform도 올려야 하는 이유
+v3.2 통합 후, 본 연구에서 8지표를 메타 검증한 결과 다음 결함 발견:
 
-발표·심사에서 webplatform이 본 연구와 **같은 엔진**을 사용해야 결과 정합성이 맞음. v3.2 유지 시 본 연구는 9지표·webplatform은 8지표로 결과가 어긋남.
+- **`value_accuracy`(가중치 0.30) 정의 모순**
+  - v3.2의 value_accuracy는 reference dataset과 KS-test 비교로 계산됨
+  - 그런데 reference가 결국 진단 대상 dataset 자신(self-reference)이라 "데이터 품질의 절대 지표"가 아니라 "자기 자신과의 일치도"가 됨
+  - 가중치 0.30으로 가장 큰 비중을 차지하는데 정의 자체가 모순적
+- **DSC ↔ 모델 성능 상관 r = 0.42** — 이 모순 때문에 상관이 약함
 
-### 통합 측 입장에서의 핵심 변화
+해결책 — value_accuracy를 제거하고 절대 품질 지표 2개 신설:
 
-- 진단 엔진 코드를 직접 import하던 방식 → **`dsc_framework` 패키지 import**
-- worker.py의 `compute_dsc()` 호출에 **task 파라미터 추가**
+| 신설 | 정의 | 가중치 |
+|---|---|---:|
+| `label_consistency` | k-NN 이웃 라벨 일관성, chance level 보정 | 0.20 |
+| `feature_informativeness` | feature → label mutual information / H(Y) | 0.10 |
+
+가중치 재배분: `value_accuracy` 0.30 제거 → `label_consistency` 0.20 + `feature_informativeness` 0.10. `class_balance`도 0.05 → 0.10으로 상향.
+
+**검증 결과** (3 데이터셋 × 5 모델 × 5 polluter × 6 level):
+- Pearson r: 0.420 → **0.598**
+- Spearman ρ: 0.365 → 0.628
+- ANOVA F: 32.9 → 84.4
+- Polluter hold-out: 5/5 PASS
+- 모델 5/5 모두 향상
+
+이게 v4. webplatform이 이 시점에 통합했다면 가중치 셋이 v3.2와 다르고 `value_accuracy` 키가 사라짐.
+
+### 1-2. v4 → v5 — Task-conditional Framework (2026-04-27 결정, 2026-05-08 Phase 1 완료)
+
+v4는 단일 (tabular, classification) cell의 결과. 학술적으로 "framework"라 부르려면 cell이 둘 이상 필요. 그래서 v5로 확장:
+
+- **task-conditional 정의**: `(data_type, task) → {metric_set, weights}` 매핑을 가진 framework
+- **강한 버전 채택**: 차원 이름이 같아도 cell마다 정의식이 다를 수 있음. 예) `feature_correlation`은 tabular cell에선 컬럼 간 Pearson, image cell에선 ResNet embedding 간 cosine
+
+v3.2가 "어떤 데이터든 같은 8지표로 진단"이었다면, v5는 "데이터를 보고 적절한 cell로 라우팅 후 cell별 9~10지표로 진단".
+
+### 1-3. v5 framework 현재 구성
+
+| Cell | 상태 | 비고 |
+|---|---|---|
+| **tabular × classification** (분류 cell) | ✅ 완료 | v4 결과 그대로 보존, r=0.598 |
+| **tabular × regression** (회귀 cell) | 🔨 Phase 1 노트북 4개 작성 완료, Phase 2 검증 대기 | 신설: `target_distribution_quality`, `target_smoothness`, `feature_informativeness_reg`. 데이터셋: California Housing, Bike Sharing, Wine Quality |
+| **image × classification** (이미지 cell) | 🔨 ADR-014 사전등록 + Phase 1 인프라 완료 | stretch goal — 캡스톤 일정상 후순위. 데이터셋: CIFAR-10, Fashion-MNIST, Flowers102 |
+| 멀티모달 | ❌ Limitations | 후속 연구 명시 |
+
+### 1-4. 왜 webplatform도 v5로 올려야 하나
+
+발표·심사에서 webplatform이 본 연구 결과와 같은 엔진을 써야 정합성이 맞음. v3.2 유지 시:
+
+- 본 연구: 9지표 (분류) / 9지표 (회귀) / r=0.598
+- webplatform: 8지표 (분류만 가정), `value_accuracy` 0.30 포함
+- → **결과 수치가 어긋나 보이고**, 심사자가 "왜 다른가" 질문 시 방어가 어려움
+
+또 회귀 데이터를 올리면 `class_balance` 같은 의미 없는 지표가 점수에 들어가 부정확. v5는 task 자동 감지로 해결.
+
+### 1-5. 통합 측 입장에서의 핵심 변화
+
+- 진단 엔진 코드를 직접 포함하던 방식 → **`dsc_framework` 패키지 import**
+- `compute_dsc()` 호출에 **task 파라미터 추가**
 - 결과 JSON에 **task 필드 추가**
-- 프론트 Slider가 **task에 따라 9개씩 분기**
+- 프론트 Slider가 **task에 따라 9개씩 분기** (분류/회귀 키 셋이 다름)
 
-엔진 본체는 DSC 측 관리. 통합 측은 import만 변경.
+엔진 본체는 DSC 측 관리. 통합 측은 import + 호출 시그니처 + UI 분기만 손봄.
 
 ---
 
