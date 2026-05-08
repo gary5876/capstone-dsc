@@ -16,3 +16,6 @@ data/
 
 # 작업 중 생긴 백업 파일
 *.baseline_only_backup
+
+# 외부 협업자에게 받은 PDF 등 (push 부적절)
+*.pdf
