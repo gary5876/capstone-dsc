@@ -1,9 +1,10 @@
 # ADR-011: DSC를 강한 버전 Task-conditional Framework로 재정의
 
 - **일자**: 2026-04-27
-- **상태**: 확정 (구현 시작 전 사전 등록)
+- **상태**: 확정 (가중치 freeze 조항만 ADR-015로 partial supersede, 2026-05-11). Framework 정의·강한 버전 채택·cell 구조는 유효.
 - **선행**: ADR-009 (v4 절대품질 지표), ADR-010 (Telco 한계), `documents/reports/20260427-04-v4-정식결과확정.md` (v4 결과 r=0.598), `documents/reports/20260427-10-레퍼런스조사보고서.md` (학술 정당화)
 - **후속**: `documents/plans/20260427-02-DSC-Framework-v5-마스터플랜.md` (구현 계획)
+- **Partial supersede (2026-05-11, ADR-015)**: §2-4 "데이터 기반 weight tuning 금지", §4.위험1 대응 中 "사전 등록한 weights를 결과 보고 변경하지 않음", §6.1 中 *가중치* freeze 부분, §6.3 "데이터 기반 weight 학습 금지" → ADR-015로 대체. 운영은 LLM 가중치 생성기, 학술 검증은 튜닝/held-out dataset 분리. **정의식 freeze 원칙은 본 ADR에서 유지**.
 
 ---
 

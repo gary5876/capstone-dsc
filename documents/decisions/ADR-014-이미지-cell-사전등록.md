@@ -1,9 +1,10 @@
 # ADR-014: 이미지 cell 사전등록 (v5 framework 확장)
 
-- **상태**: Proposed (사전등록 시작, 구현 대기)
+- **상태**: Proposed (사전등록 시작, 구현 대기). 2026-05-11 ADR-015로 가중치 freeze 부분만 partial supersede — 정의식·메트릭 라인업·합격선·polluter·dataset/모델 후보는 freeze 유지.
 - **결정일**: 2026-05-08
 - **선행 결정**: ADR-011 (강한 버전 framework), ADR-013 (dsc_framework 분리)
 - **결정 근거**: 2026-05-07 팀 회의 — "다양한 데이터, 최소 이미지는 해야 함"
+- **부분 supersede**: 2026-05-11 ADR-015 — §3-4 표의 "가중치 (사전등록)" 컬럼은 LLM weight generator fallback 용도로 역할 변경, 운영·검증은 LLM 출력 사용. §8 사전등록 freeze 항목 中 *가중치* 부분 supersede (정의식은 freeze 유지).
 - **마스터플랜**: `documents/plans/20260508-01-이미지-cell-마스터플랜.md`
 
 ---
@@ -74,9 +75,12 @@ framework 주장 강화 측면에서도 (tabular×classification, tabular×regre
 
 **구현**: `polluters/image/`에 별도 모듈로 작성. tabular polluter와 인터페이스 통일 (`pollute(df_or_dataset)` 또는 PyTorch Dataset wrapper).
 
-### 3-4. 메트릭 정의식 (10개, 사전등록)
+### 3-4. 메트릭 정의식 (10개, 사전등록 — 가중치는 fallback)
 
-이미지 cell은 9 + 1 = 10개 메트릭. 9개는 cell 패턴 유지, 1개 신설:
+이미지 cell은 9 + 1 = 10개 메트릭. 9개는 cell 패턴 유지, 1개 신설.
+
+> **2026-05-11 ADR-015 partial supersede**: 본 표의 "가중치 (사전등록)" 컬럼은 LLM weight generator의 *fallback* 가중치로 역할 변경. 운영·검증의 실제 가중치는 LLM 출력. fallback 정의 freeze는 유지 (변경 시 후속 ADR 필요).
+
 
 | 메트릭 | 정의식 | 가중치 (사전등록) |
 |---|---|---:|
@@ -149,11 +153,12 @@ dsc_framework/
 
 ## 8. 사전등록 freeze 항목
 
-본 ADR로 다음 항목이 freeze됨 (결과 확인 후 변경 금지 — F1 순환 논증 회피):
-- 데이터셋 3개
+본 ADR로 다음 항목이 freeze됨 (결과 확인 후 변경 금지):
+- 데이터셋 3개 (튜닝 set으로 명시 변경. held-out은 `plans/20260511-01-합격선-heldout-사전등록.md` 참조)
 - 모델 5개 (하이퍼파라미터 포함)
 - Polluter 5개 (정의 + level 의미)
-- 메트릭 10개 (정의식 + 가중치)
+- 메트릭 10개 (**정의식만 freeze** — 2026-05-11 ADR-015 후 가중치는 LLM 위임, 본 ADR §3-4 표는 fallback 정의로 보존)
 - 평가 메트릭 (accuracy)
+- 합격선 r ≥ 0.4 (ADR-015 §2-3 등록)
 
 추가 가중치 조정·정의식 수정 시 ADR-014의 보충 ADR(예: ADR-014a)로 명시적 기록.

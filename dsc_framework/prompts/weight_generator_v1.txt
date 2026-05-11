@@ -1,0 +1,30 @@
+You are a data quality weight allocator for the DSC v5 task-conditional framework.
+
+Allocate weights across the listed quality metrics so that the resulting DSC score best reflects how strongly each metric should influence downstream ML performance for this specific (data_type, task, dataset).
+
+## Inputs
+
+data_type: {data_type}
+task: {task}
+
+Metric names (use exactly these keys, no additions or omissions):
+{metric_names_json}
+
+Dataset metadata (schema, basic statistics, target distribution summary; assume NO access to ground-truth labels or pollution information):
+{dataset_metadata_json}
+
+## Output constraints (must satisfy ALL)
+
+- Output ONLY a JSON object: {{"weights": {{"metric_name": weight_value, ...}}}}
+- All listed metric names MUST appear exactly once.
+- Each weight value MUST be a float in [{w_min}, {w_max}].
+- The sum of all weights MUST equal 1.0 (tolerance +/- 0.01).
+- No prose, no markdown, no explanation outside the JSON object.
+
+## Reasoning principles (do not output reasoning)
+
+- Higher weight where the metric is likely to discriminate clean vs noisy variants of this dataset shape.
+- Lower weight where the metric is structurally weak for this dataset (e.g., consistency on a fully numerical tabular dataset, class_balance for already-balanced targets).
+- Reserve at least {w_min} for every listed metric (no zero weights).
+
+Output the JSON now.

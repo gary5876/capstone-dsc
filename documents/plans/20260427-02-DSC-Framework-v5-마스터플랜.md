@@ -1,6 +1,7 @@
 # DSC v5 — Task-conditional Framework 확장 마스터플랜
 
 - **작성일**: 2026-04-27
+- **갱신**: 2026-05-11 — ADR-015 partial supersede 반영 (가중치 freeze 해제 → LLM 위임, 튜닝/held-out dataset 분리). 본 plan §3-2 / §4.2 갱신, 합격선·held-out 사전등록은 `documents/plans/20260511-01-합격선-heldout-사전등록.md`로 분기.
 - **목적**: DSC를 (data_type, task) → {metric_set, weights} 매핑을 가진 framework로 확장. tabular × regression cell 추가로 framework 주장 성립 (n=2 instance).
 - **선행 문서**:
   - `documents/decisions/ADR-011-Task-conditional-Framework-강한버전채택.md` (결정 기록)
@@ -267,10 +268,12 @@ def select_profile(data_type: str, task: str) -> dict:
 
 **총 9 항목** (validity, consistency 포함). 회귀 cell도 분류 cell과 동일 슬롯 구조 — 호환성 유지.
 
-### 3-2. 가중치 (회귀 cell, default profile)
+### 3-2. 가중치 (회귀 cell, default profile / fallback)
+
+> **2026-05-11 갱신 (ADR-015 partial supersede)**: 본 절의 가중치 사전등록은 *운영·검증 가중치*가 아니라 **fallback 정의**로 역할 변경. 운영·검증의 실제 가중치는 LLM weight generator 출력. LLM 출력 검증 실패 또는 baseline 비교 시에만 본 절 default 사용. **Phase 2 결과 보고 변경 금지는 "fallback 정의 freeze"로 적용** (정의식 freeze는 그대로).
 
 ```
-회귀 default profile (합 = 1.00):
+회귀 default profile / fallback (합 = 1.00):
   completeness:                 0.20
   uniqueness:                   0.15
   validity:                     0.05
@@ -364,9 +367,11 @@ preservation_score  = (1 − overall_degradation) × 100   # ∈ [0, 100]
    - sklearn.datasets.fetch_california_housing 동작 검증 (Colab에서)
    - mutual_info_regression scipy/sklearn 버전 호환성 확인
 
-2. **사전 등록 준수** (ADR-011 위험1 대응):
-   - 본 문서 3절의 정의식·가중치는 Phase 2 결과를 보고 변경 금지
-   - 가중치 미세조정이 필요하면 사전 등록을 무효화하고 ADR-012로 신규 의사결정 기록
+2. **사전 등록 준수** (ADR-011 + ADR-015):
+   - 본 문서 3절의 **정의식**은 Phase 2 결과 보고 변경 금지 (ADR-011 유지)
+   - **가중치는 LLM weight generator 출력에 위임** (2026-05-11 ADR-015 partial supersede). 본 문서 §3-2 default는 fallback 정의로만 사용
+   - **튜닝/held-out dataset 분리** (ADR-015): 같은 dataset에서 메커니즘 튜닝 + 최종 r 보고 동시 금지. held-out 측정 후 메커니즘 조정 금지
+   - 합격선·held-out dataset 목록·LLM prompt freeze 시점은 별도 plan `documents/plans/20260511-01-합격선-heldout-사전등록.md`에 사전 등록
 
 3. **Split-first + train-only 오염 + clean test** (feedback_ml_pipeline_process.md):
    - 회귀 cell도 분류 cell과 동일 원칙 적용
