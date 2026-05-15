@@ -63,8 +63,9 @@
   - `target_smoothness`
   - `feature_informativeness_reg`
 
-### 2-3. image cell 참고 (후속)
-- v5에는 image cell도 포함되지만, webplatform 통합 시점에서는 **후속 검토 항목**으로 둬도 무방.
+### 2-3. image cell 통합 포함
+- v5에는 image cell이 본 통합 변경점에 포함되어야 합니다. image cell은 단순한 후속이 아니라, `dsc_framework`의 3번째 instance로서 현재 작업 대상입니다.
+- webplatform 통합 단계에서는 `data_type`/`task` 분기 및 image cell metric set 지원을 함께 설계해야 합니다.
 - image cell 주요 지표 10개:
   - `completeness_image`
   - `uniqueness`
@@ -130,7 +131,7 @@
 ---
 
 ## 6. 주의 사항
-- 이미지 cell은 본 시점에서는 **선택적 후속**으로 유지.
+- 이미지 cell은 본 통합 변경점에 포함됩니다. `documents/decisions/ADR-014-이미지-cell-사전등록.md`와 `documents/progress/20260508-03-이미지cell-Phase1-인프라구축.md`를 참고하여 image cell 지원을 설계해야 합니다.
 - 회귀/분류 자동 감지가 잘못될 경우 `column_detection.detect_task()`의 `num_unique_threshold` 조정 필요.
 - `task`와 metric set이 섞이면 `KeyError`가 발생하므로, 프론트와 백엔드 모두 같은 task 기준으로 처리해야 함.
 
