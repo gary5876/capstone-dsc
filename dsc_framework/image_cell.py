@@ -330,15 +330,9 @@ def _extract_features(images, sample_cap=2000, random_state=1, batch_size=64):
 # 7. feature_correlation — embedding cosine 상관
 # =================================================================
 
-def calc_feature_correlation(images, sample_cap=1000, random_state=1, threshold=0.95):
-    """ResNet18 embedding 차원 간 상관 — 고상관(>threshold) 차원 비율의 보수.
-    임베딩 차원 페어 수가 많아 sample_cap 작게."""
-    if len(images) < 10:
-        return 1.0
-    feats, _ = _extract_features(images, sample_cap=sample_cap, random_state=random_state)
+def _calc_feature_correlation_from_feats(feats, threshold=0.95):
     if feats.shape[1] < 2:
         return 1.0
-    # 차원 간 상관
     corr = np.corrcoef(feats.T)
     upper = np.triu(np.abs(corr), k=1)
     total_pairs = (corr.shape[0] * (corr.shape[0] - 1)) // 2
@@ -346,27 +340,29 @@ def calc_feature_correlation(images, sample_cap=1000, random_state=1, threshold=
     return float(1.0 - high / total_pairs) if total_pairs > 0 else 1.0
 
 
+def calc_feature_correlation(images, sample_cap=1000, random_state=1, threshold=0.95):
+    """ResNet18 embedding 차원 간 상관 — 고상관(>threshold) 차원 비율의 보수.
+    임베딩 차원 페어 수가 많아 sample_cap 작게."""
+    if len(images) < 10:
+        return 1.0
+    feats, _ = _extract_features(images, sample_cap=sample_cap, random_state=random_state)
+    return _calc_feature_correlation_from_feats(feats, threshold=threshold)
+
+
 # =================================================================
 # 8. label_consistency — k-NN embedding 라벨 일관성 (chance 보정)
 # =================================================================
 
-def calc_label_consistency(images, labels, k=5, sample_cap=2000, random_state=1):
-    """tabular cell의 calc_label_consistency 패턴 — feature 공간만 변경.
-    chance level 보정 포함."""
+def _calc_label_consistency_from_feats(feats, y, k=5):
     from sklearn.neighbors import NearestNeighbors
     from sklearn.preprocessing import StandardScaler
 
-    if len(images) < k + 1:
+    if len(feats) < k + 1:
         return 1.0
-    feats, sample_idx = _extract_features(images, sample_cap=sample_cap, random_state=random_state)
-    y = np.asarray(labels)[sample_idx]
-
-    # standardize
     feats_std = StandardScaler().fit_transform(feats)
     nn = NearestNeighbors(n_neighbors=k + 1).fit(feats_std)
     _, idx = nn.kneighbors(feats_std)
     raw = (y[idx[:, 1:]] == y[:, None]).mean()
-    # chance correction
     counts = np.bincount(y) if y.dtype.kind in 'iu' else np.array(list(Counter(y.tolist()).values()))
     total = counts.sum()
     class_props = counts[counts > 0] / total
@@ -376,17 +372,22 @@ def calc_label_consistency(images, labels, k=5, sample_cap=2000, random_state=1)
     return float(np.clip((raw - chance) / (1.0 - chance), 0.0, 1.0))
 
 
+def calc_label_consistency(images, labels, k=5, sample_cap=2000, random_state=1):
+    """tabular cell의 calc_label_consistency 패턴 — feature 공간만 변경.
+    chance level 보정 포함."""
+    if len(images) < k + 1:
+        return 1.0
+    feats, sample_idx = _extract_features(images, sample_cap=sample_cap, random_state=random_state)
+    y = np.asarray(labels)[sample_idx]
+    return _calc_label_consistency_from_feats(feats, y, k=k)
+
+
 # =================================================================
 # 9. feature_informativeness — embedding → label MI / H(Y)
 # =================================================================
 
-def calc_feature_informativeness(images, labels, sample_cap=2000, random_state=1):
+def _calc_feature_informativeness_from_feats(feats, y, random_state=1):
     from sklearn.feature_selection import mutual_info_classif
-
-    if len(images) < 10:
-        return 1.0
-    feats, sample_idx = _extract_features(images, sample_cap=sample_cap, random_state=random_state)
-    y = np.asarray(labels)[sample_idx]
 
     try:
         mi = mutual_info_classif(feats, y, discrete_features=False, random_state=random_state)
@@ -400,6 +401,14 @@ def calc_feature_informativeness(images, labels, sample_cap=2000, random_state=1
     if h_y <= 0:
         return 1.0
     return float(np.clip(mi.sum() / h_y, 0.0, 1.0))
+
+
+def calc_feature_informativeness(images, labels, sample_cap=2000, random_state=1):
+    if len(images) < 10:
+        return 1.0
+    feats, sample_idx = _extract_features(images, sample_cap=sample_cap, random_state=random_state)
+    y = np.asarray(labels)[sample_idx]
+    return _calc_feature_informativeness_from_feats(feats, y, random_state=random_state)
 
 
 # =================================================================
@@ -493,13 +502,17 @@ def compute_dsc_image(images, labels, weights=None,
         'class_balance':       calc_class_balance(labels),
         'sample_quality_image': calc_sample_quality_image(images, sample_cap=sample_cap, random_state=random_state),
     }
-    if use_embeddings:
-        metrics['feature_correlation'] = calc_feature_correlation(
-            images, sample_cap=min(sample_cap, 1000), random_state=random_state)
-        metrics['label_consistency'] = calc_label_consistency(
-            images, labels, sample_cap=sample_cap, random_state=random_state)
-        metrics['feature_informativeness'] = calc_feature_informativeness(
-            images, labels, sample_cap=sample_cap, random_state=random_state)
+    if use_embeddings and len(images) >= 10:
+        # ResNet18 feature를 1번만 추출, 3개 embedding 메트릭이 공유 (~3x 가속).
+        feats, sample_idx = _extract_features(images, sample_cap=sample_cap, random_state=random_state)
+        y_sample = np.asarray(labels)[sample_idx]
+        metrics['feature_correlation'] = _calc_feature_correlation_from_feats(feats)
+        metrics['label_consistency'] = (
+            _calc_label_consistency_from_feats(feats, y_sample, k=5)
+            if len(feats) >= 6 else 1.0
+        )
+        metrics['feature_informativeness'] = _calc_feature_informativeness_from_feats(
+            feats, y_sample, random_state=random_state)
     else:
         metrics['feature_correlation'] = 1.0
         metrics['label_consistency'] = 1.0
