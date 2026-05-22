@@ -1,0 +1,26 @@
+{
+  "weights": {
+    "completeness_image": 0.0,
+    "uniqueness": 4.062950524772061e-05,
+    "validity": 8.431716486284276e-05,
+    "consistency": 2.2346300405784557e-05,
+    "outlier_ratio": 0.5684533116394183,
+    "class_balance": 0.06840193546355178,
+    "sample_quality_image": 0.03713763410115119,
+    "feature_correlation": 0.000632412351656155,
+    "label_consistency": 0.075768576774705,
+    "feature_informativeness": 0.2494588366990013
+  },
+  "tune_dataset": "CIFAR10",
+  "held_out_dataset": "FashionMNIST",
+  "metrics": {
+    "pearson_r_tune": 0.5048636699853646,
+    "pearson_r_held_out": 0.5709328103042427,
+    "pearson_r_default_held_out": 0.4469154859134487,
+    "pearson_r_default_tune": 0.44863499345776175,
+    "generalization_gap": -0.06606914031887812
+  },
+  "n_tune": 52,
+  "n_held_out": 52,
+  "note": "PILOT 미니버전 ADR-015 검증. 튜닝셋 fit -> held-out 측정."
+}

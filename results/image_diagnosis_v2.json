@@ -1,0 +1,35 @@
+{
+  "date": "2026-05-22",
+  "weights_default": {
+    "completeness_image": 0.15,
+    "uniqueness": 0.1,
+    "validity": 0.05,
+    "consistency": 0.05,
+    "outlier_ratio": 0.05,
+    "class_balance": 0.1,
+    "feature_correlation": 0.05,
+    "label_consistency": 0.2,
+    "feature_informativeness": 0.1,
+    "sample_quality_image": 0.15
+  },
+  "weights_tuned_live": {
+    "completeness_image": 0.006930693071923241,
+    "class_balance": 0.1151664020458098,
+    "sample_quality_image": 0.05944868050279856,
+    "label_consistency": 0.11807492693952824,
+    "feature_informativeness": 0.40037929743994005
+  },
+  "r_default": {
+    "CIFAR10": 0.4486349934577615,
+    "FashionMNIST": 0.4469154859134483,
+    "POOLED": 0.38942641633758956
+  },
+  "r_tuned": {
+    "CIFAR10": 0.5039833622171317,
+    "FashionMNIST": 0.5781211006465143,
+    "POOLED": 0.5843737269698412
+  },
+  "polluter_holdout_pass": "2/5",
+  "model_positive_r": "4/4",
+  "n_total": 104
+}
