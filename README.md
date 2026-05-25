@@ -21,6 +21,37 @@
 
 **프로젝트 배경·설계 의도를 알고 싶다면:** [`documents/`](documents/) — 마스터플랜, 의사결정 기록(ADR), 진행 기록.
 
+**DSC 엔진을 외부 시스템(웹 플랫폼 등)에서 라이브러리로 호출하고 싶다면:** [§ 외부 시스템 통합](#외부-시스템-통합--dsc-엔진-라이브러리-사용) — `dsc_framework` 패키지 import 방법, 호출 모델, 통합 가이드 링크.
+
+---
+
+## 외부 시스템 통합 — DSC 엔진 라이브러리 사용
+
+이 저장소의 `dsc_framework/` 패키지는 v5 task-conditional DSC 엔진을 **Python 라이브러리**로 제공합니다. 자체 HTTP/MQ 서버는 미제공 — 호출 측이 import하여 함수로 직접 사용.
+
+```python
+from dsc_framework import compute_dsc
+
+result = compute_dsc(
+    df=df,             # pandas DataFrame (tabular) 또는 images=..., labels=... (image)
+    data_type=None,    # 'tabular' | 'image'. 미지정 시 자동감지
+    task=None,         # 'classification' | 'regression'. 미지정 시 자동감지
+    weights=None,      # dict. 미지정 시 cell별 사전등록 가중치 사용
+)
+# {'score': 70.06, 'grade': 'C', 'task': 'classification', 'data_type': 'tabular',
+#  'completeness': ..., 'uniqueness': ..., ..., 'label_consistency': ..., ...}
+```
+
+지원 cell:
+- `('tabular', 'classification')` — 9개 지표, ADR-009 사전등록
+- `('tabular', 'regression')` — 9개 지표, ADR-011 사전등록
+- `('image', 'classification')` — 10개 지표, ADR-014 사전등록
+
+**aidq-platform v3.2 → v5 전환 시 변경점·MQ 메시지 → `compute_dsc` 매핑·지표 schema 전체는 통합 가이드 참조:**
+[`documents/reports/20260515-01-aidq-platform-v5-통합-가이드.md`](documents/reports/20260515-01-aidq-platform-v5-통합-가이드.md)
+
+라이브러리 의존성 (최소): `pandas`, `numpy`, `scikit-learn`, `scipy`. 이미지 cell 호출 시 추가 lazy import: `torch`, `torchvision`, `Pillow`, `opencv-python`.
+
 ---
 
 ## 실험 파이프라인
@@ -55,6 +86,16 @@
 dsc/
 ├── README.md                     ← 이 문서
 ├── COMMIT_CONVENTION.md          ← 커밋 메시지 규칙
+│
+├── dsc_framework/                ← v5 DSC 엔진 (외부 시스템에서 import 가능한 Python 라이브러리)
+│   ├── router.py                 ← compute_dsc 통합 진입점
+│   ├── classification_cell.py    ← tabular 분류 cell (9개 지표)
+│   ├── regression_cell.py        ← tabular 회귀 cell (9개 지표)
+│   ├── image_cell.py             ← 이미지 cell (10개 지표, torch lazy import)
+│   ├── shared_metrics.py         ← cell 공통 지표 함수
+│   ├── column_detection.py       ← target/수치형/범주형/task 자동감지
+│   ├── data_type_detection.py    ← tabular vs image 자동감지
+│   └── llm_weight_generator.py   ← ADR-015 LLM 가중치 생성기
 │
 ├── notebooks/                    ← 실험 파이프라인 (4단계)
 │   ├── 01_setup_and_baseline.ipynb
