@@ -32,6 +32,8 @@ from typing import Any
 from .classification_cell import DEFAULT_WEIGHTS_CLASSIFICATION
 from .image_cell import DEFAULT_WEIGHTS_IMAGE
 from .regression_cell import DEFAULT_WEIGHTS_REGRESSION
+from .text_cell import DEFAULT_WEIGHTS_TEXT
+from .text_cell_regression import DEFAULT_WEIGHTS_TEXT_REG
 
 PROMPT_DIR = Path(__file__).parent / "prompts"
 
@@ -39,6 +41,8 @@ DEFAULT_WEIGHT_PROFILES: dict[tuple[str, str], dict[str, float]] = {
     ('tabular', 'classification'): DEFAULT_WEIGHTS_CLASSIFICATION,
     ('tabular', 'regression'): DEFAULT_WEIGHTS_REGRESSION,
     ('image', 'classification'): DEFAULT_WEIGHTS_IMAGE,
+    ('text', 'classification'): DEFAULT_WEIGHTS_TEXT,
+    ('text', 'regression'): DEFAULT_WEIGHTS_TEXT_REG,
 }
 
 WEIGHT_BOUNDS: tuple[float, float] = (0.01, 0.60)

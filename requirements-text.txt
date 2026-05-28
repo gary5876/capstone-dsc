@@ -1,0 +1,16 @@
+# DSC v5 텍스트 cell 의존성 — ADR-016 + ADR-017
+# 기존 dq4ai/requirements.txt 위에 추가 설치하는 형태.
+# Colab 기본 환경에는 transformers/datasets가 종종 이미 설치되어 있음.
+#
+# 설치:
+#     pip install -r dq4ai/requirements.txt
+#     pip install -r requirements-text.txt
+
+# 임베딩 (DistilBERT-base-uncased, ADR-016 §3-2)
+transformers>=4.30,<5.0
+# HuggingFace dataset loader (ag_news / imdb / 20_newsgroups / yelp_review_full / sst5 / amazon_reviews_multi)
+datasets>=2.10,<3.0
+# tokenizer 의존성 (transformers가 자동 설치하기도 함, 명시)
+tokenizers>=0.13
+# regression cell XGBoost+TFIDF 모델 (ADR-017 §3-2)
+xgboost>=1.7,<3.0

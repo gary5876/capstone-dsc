@@ -15,6 +15,10 @@ from .image_cell import DEFAULT_WEIGHTS_IMAGE, compute_dsc_image
 from .regression_cell import (
     DEFAULT_WEIGHTS_REGRESSION, compute_dsc_regression,
 )
+from .text_cell import DEFAULT_WEIGHTS_TEXT, compute_dsc_text
+from .text_cell_regression import (
+    DEFAULT_WEIGHTS_TEXT_REG, compute_dsc_text_regression,
+)
 
 
 _PROFILES = {
@@ -29,6 +33,14 @@ _PROFILES = {
     ('image', 'classification'): {
         'compute_fn': compute_dsc_image,
         'default_weights': DEFAULT_WEIGHTS_IMAGE,
+    },
+    ('text', 'classification'): {
+        'compute_fn': compute_dsc_text,
+        'default_weights': DEFAULT_WEIGHTS_TEXT,
+    },
+    ('text', 'regression'): {
+        'compute_fn': compute_dsc_text_regression,
+        'default_weights': DEFAULT_WEIGHTS_TEXT_REG,
     },
 }
 
@@ -59,24 +71,29 @@ def select_profile(key):
 def compute_dsc(input_obj=None, df=None,
                 target_col=None, numerical_cols=None, categorical_cols=None,
                 images=None, labels=None,
+                texts=None, targets=None,
                 data_type=None, task=None,
                 weights=None, **kwargs):
-    """DSC 통합 진입점 — tabular/image 모두 처리.
+    """DSC 통합 진입점 — tabular/image/text 모두 처리.
 
     호출 패턴:
-      tabular: compute_dsc(df=df) 또는 compute_dsc(df)  ← 기존 방식 유지
+      tabular: compute_dsc(df=df) 또는 compute_dsc(df)
       image:   compute_dsc(images=imgs, labels=lbs, data_type='image')
-               compute_dsc((imgs, lbs))  ← tuple로도 가능
+               compute_dsc((imgs, lbs))
+      text:    compute_dsc(texts=txs, labels=lbs, data_type='text')             ← 분류
+               compute_dsc(texts=txs, targets=ts, data_type='text', task='regression')
+               compute_dsc((txs, lbs))  ← tuple, 첫 원소가 str이면 'text' 감지
 
-    data_type=None이면 detect_data_type(input_obj or df)로 자동 추정.
+    data_type=None이면 detect_data_type(input_obj)로 자동 추정.
     task=None이면:
       tabular: column_detection.auto_detect_columns로 추정
-      image:   'classification'으로 폴백 (캡스톤 사전등록)
+      image:   'classification' 폴백 (ADR-014)
+      text:    'classification' 폴백 (ADR-016). 회귀는 task='regression' 명시.
 
     Returns:
         cell 결과 dict + 'task'·'data_type' 키 추가.
     """
-    # 1) input_obj/df 정리 (호환 위해 둘 다 지원)
+    # 1) input_obj/df 정리
     if input_obj is None and df is not None:
         input_obj = df
 
@@ -84,12 +101,15 @@ def compute_dsc(input_obj=None, df=None,
     if data_type is None:
         if images is not None:
             data_type = 'image'
+        elif texts is not None:
+            data_type = 'text'
         elif input_obj is not None:
             data_type = detect_data_type(input_obj)
             if data_type == 'unknown':
-                raise ValueError("data_type 자동 감지 실패. data_type='tabular' 또는 'image'를 명시하세요.")
+                raise ValueError(
+                    "data_type 자동 감지 실패. data_type='tabular'/'image'/'text'를 명시하세요.")
         else:
-            raise ValueError("input_obj/df 또는 images를 제공해야 함.")
+            raise ValueError("input_obj/df, images, 또는 texts를 제공해야 함.")
 
     # 3) data_type별 분기
     if data_type == 'tabular':
@@ -134,6 +154,36 @@ def compute_dsc(input_obj=None, df=None,
         result = profile['compute_fn'](images, labels, weights=weights, **kwargs)
         result['task'] = task
         result['data_type'] = 'image'
+        return result
+
+    elif data_type == 'text':
+        # texts/labels(또는 targets) 추출
+        if texts is None:
+            if isinstance(input_obj, tuple) and len(input_obj) == 2:
+                texts, second = input_obj
+                if labels is None and targets is None:
+                    # task에 따라 두 번째 원소 해석
+                    if task == 'regression':
+                        targets = second
+                    else:
+                        labels = second
+            elif hasattr(input_obj, '__len__') and len(input_obj) > 0 \
+                    and isinstance(input_obj[0], str):
+                texts = list(input_obj)
+            else:
+                raise ValueError("texts=... 또는 (texts, labels/targets) tuple이 필요.")
+
+        if task is None:
+            task = 'regression' if (targets is not None and labels is None) else 'classification'
+
+        profile = select_profile(('text', task))
+        if task == 'regression':
+            t = targets if targets is not None else labels
+            result = profile['compute_fn'](texts, t, weights=weights, **kwargs)
+        else:
+            result = profile['compute_fn'](texts, labels, weights=weights, **kwargs)
+        result['task'] = task
+        result['data_type'] = 'text'
         return result
 
     else:
