@@ -46,7 +46,7 @@
 
 ### 2-2. text × regression
 
-**튜닝 set** (ADR-017): `Yelp/yelp_review_full` (sample_cap 50K), `mteb/amazon_reviews_multi` 'en' subset (sample_cap 200K), `SetFit/sst5`
+**튜닝 set** (ADR-017): `Yelp/yelp_review_full` (sample_cap 50K), `SetFit/amazon_reviews_multi_en` (sample_cap 200K), `SetFit/sst5`
 
 **held-out 후보 (2종 confirmed + 1 candidate slot)**:
 

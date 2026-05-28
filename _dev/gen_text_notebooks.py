@@ -184,7 +184,7 @@ news20  = load_dataset('SetFit/20_newsgroups')
 
 # 회귀 트랙 (Yelp/Amazon은 sample_cap 적용)
 yelp    = load_dataset('Yelp/yelp_review_full')
-amazon  = load_dataset('mteb/amazon_reviews_multi', 'en')
+amazon  = load_dataset('SetFit/amazon_reviews_multi_en')  # ADR-017 §3-1 미러 (mteb는 dataset script 차단됨)
 sst5    = load_dataset('SetFit/sst5')
 
 print('sizes:',

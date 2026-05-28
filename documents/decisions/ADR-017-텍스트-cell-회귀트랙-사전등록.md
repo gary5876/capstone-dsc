@@ -2,6 +2,7 @@
 
 - **상태**: Proposed (사전등록 시작, 구현 대기). ADR-015 가중치 freeze 해제 원칙 그대로 적용.
 - **결정일**: 2026-05-28
+- **2026-05-28 amendment (당일)**: §3-1 Amazon Reviews EN 데이터셋의 미러를 `mteb/amazon_reviews_multi` (subset `en`) → `SetFit/amazon_reviews_multi_en`으로 교체. 사유: `mteb/...`는 dataset script(.py) 기반이라 신버전 `datasets` 라이브러리에서 "Dataset scripts are no longer supported" RuntimeError. 같은 원본 코퍼스(Amazon Reviews Multi)의 영어 parquet 미러로 데이터 내용 동일. sample_cap(200K train / 5K test) 그대로 적용 가능. 사전 검증 한계로 ADR 작성 당시 인지 못함
 - **선행 결정**:
   - ADR-011 (강한 버전 framework — cell마다 정의식 재정의)
   - ADR-012 (Degradation Index 보조 지표, 회귀 cell에 그대로 승계)
@@ -32,7 +33,7 @@ tabular × regression cell이 이미 이 메트릭 재정의 패턴을 검증했
 | 데이터셋 | HuggingFace ID | 타겟 | train | test | 특징 |
 |---|---|---|---:|---:|---|
 | **Yelp Review Full** | `Yelp/yelp_review_full` | 별점 0-4 (1-5 매핑) | 650,000 | 50,000 | 5-star ordinal regression. 평균 ~120토큰. 클래스당 균일 130K/10K |
-| **Amazon Reviews EN** | `mteb/amazon_reviews_multi` (subset `en`) | 별점 0-4 | 200,000 | 5,000 | 5-star ordinal regression. 다국어 데이터셋에서 영어만 사용 (~210K 중) |
+| **Amazon Reviews EN** | `SetFit/amazon_reviews_multi_en` | 별점 0-4 | 200,000 | 5,000 (val) + 5,000 (test) | 5-star ordinal regression. Amazon Reviews Multi 코퍼스의 영어 미러. parquet 포맷 (dataset script 비의존). Apache 2.0 |
 | **SST-5** | `SetFit/sst5` | 감성 0-4 (very neg → very pos) | 8,540 | 2,210 | 5-class 미세 감성. ordinal. 짧은 텍스트(평균 ~20토큰) |
 
 **선정 근거**:
@@ -227,7 +228,7 @@ text_cell.py와 text_cell_regression.py는 embedding 추출 함수(`_extract_fea
 | 자원 | 상태 | 비고 |
 |---|---|---|
 | `Yelp/yelp_review_full` | ✅ 접근 가능 | 700K rows, 5-star, Parquet, 라이선스 Yelp Dataset Agreement (학술 사용 OK) |
-| `mteb/amazon_reviews_multi` | ✅ 접근 가능 | 2.52M rows 다국어, `en` subset 약 210K. 본 ADR은 `en` subset만 사용 |
+| `SetFit/amazon_reviews_multi_en` | ✅ 접근 가능, parquet | 210K English subset (Amazon Reviews Multi 코퍼스). Apache 2.0. 2026-05-28 Phase 2 진입 시 `mteb/amazon_reviews_multi`가 dataset script(.py) 기반이라 신버전 `datasets` 라이브러리에서 차단됨이 확인되어 본 미러로 교체 |
 | `SetFit/sst5` | ✅ 접근 가능 | 11.9K rows, 5-class ordinal |
 | `distilbert/distilbert-base-uncased` | ✅ 접근 가능 | ADR-016과 공유 |
 | `google-bert/bert-base-uncased` | 사전 확인 권장 | Phase 1 진입 직전 확인 |
