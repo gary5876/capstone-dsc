@@ -61,24 +61,54 @@ DSC v5 framework — text × classification (ADR-016) + text × regression (ADR-
 
 ---
 """),
-    md("## 0. 환경 설정\n\nColab T4 GPU 가정. 학교 카드 결제 활성화 + HuggingFace 토큰 발급(필요 시) 완료 전제.\n"),
-    code("""# requirements-text.txt 패키지 설치 (Colab 환경)
-!pip install -q transformers>=4.30 datasets>=2.10 xgboost>=1.7 sentence-transformers
+    md("## 0. 환경 설정\n\nColab T4 GPU 가정. 이미지 cell 노트북과 동일 BASE 패턴.\n"),
+    code("""# ============================================================
+# 0-1. Drive 마운트 + GPU 확인
+# ============================================================
+from google.colab import drive
+drive.mount('/content/drive')
 
-import sys, os, json
-ROOT = '/content/drive/MyDrive/capstone/dsc'  # Colab Google Drive 마운트 경로 (조정)
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
-
+import os, sys, json
 import numpy as np
 import pandas as pd
 import torch
+
+BASE = '/content/drive/MyDrive/capstone/dsc'
+RESULTS_DIR = f'{BASE}/results'
+DATA_DIR = f'{BASE}/data/text'
+os.makedirs(RESULTS_DIR, exist_ok=True)
+os.makedirs(DATA_DIR, exist_ok=True)
+
+if BASE not in sys.path:
+    sys.path.insert(0, BASE)
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print(f'device: {device}')
+print(f'torch: {torch.__version__}')
+print(f'BASE: {BASE}  exists={os.path.isdir(BASE)}')
+"""),
+    code("""# ============================================================
+# 0-2. 의존성 설치 (Colab 환경) — 패키지 설치 후 다음 셀부터 import
+# ============================================================
+%pip install -q transformers>=4.30 datasets>=2.10 xgboost>=1.7
+"""),
+    code("""# ============================================================
+# 0-3. dsc_framework / datasets import — 위 셀 실행 완료 후
+# ============================================================
 from datasets import load_dataset
 
-from dsc_framework.text_cell import compute_dsc_text
-from dsc_framework.text_cell_regression import compute_dsc_text_regression
+try:
+    from dsc_framework.text_cell import compute_dsc_text
+    from dsc_framework.text_cell_regression import compute_dsc_text_regression
+except ModuleNotFoundError as e:
+    raise RuntimeError(
+        f"dsc_framework import 실패. BASE 경로({BASE})가 dsc/ 디렉토리를 가리키는지 확인. "
+        f"sys.path={sys.path[:3]}"
+    ) from e
 
-print('cuda:', torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'n/a')
+print('dsc_framework import OK.')
+print('cuda:', torch.cuda.is_available(),
+      torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'n/a')
 """),
     md("## 1. 튜닝 dataset 로드\n\nADR-016 §3-1 / ADR-017 §3-1 freeze.\n"),
     code("""# 분류 트랙
@@ -183,15 +213,17 @@ Output: `results/text_cell_dsc_sweep.csv` (rows = dataset × polluter × level �
 
 ---
 """),
-    md("## 0. import + 데이터 (01에서 캐싱)\n"),
-    code("""import sys, os
-ROOT = '/content/drive/MyDrive/capstone/dsc'
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
+    md("## 0. import + 데이터 (01에서 캐싱)\n\n새 세션이면 drive 재마운트 필요. 같은 런타임에서 01 다음으로 실행이면 이 셀 skip 가능.\n"),
+    code("""from google.colab import drive
+drive.mount('/content/drive', force_remount=False)
 
+import sys, os, json
 import numpy as np
 import pandas as pd
-import json
+
+BASE = '/content/drive/MyDrive/capstone/dsc'
+if BASE not in sys.path:
+    sys.path.insert(0, BASE)
 
 from dsc_framework.text_cell import compute_dsc_text
 from dsc_framework.text_cell_regression import compute_dsc_text_regression
@@ -294,11 +326,10 @@ Output: `results/text_train_metrics.csv` (rows = dataset × model × polluter ×
 ---
 """),
     md("## 0. import + 모델 정의\n"),
-    code("""import sys, os
-ROOT = '/content/drive/MyDrive/capstone/dsc'
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
+    code("""from google.colab import drive
+drive.mount('/content/drive', force_remount=False)
 
+import sys, os, json
 import numpy as np
 import pandas as pd
 import torch
@@ -307,6 +338,13 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.metrics import accuracy_score, f1_score, r2_score
+
+BASE = '/content/drive/MyDrive/capstone/dsc'
+if BASE not in sys.path:
+    sys.path.insert(0, BASE)
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print('device:', device)
 """),
     md("## 1. 모델 학습 함수\n\n각 모델은 (train_texts, train_labels, test_texts, test_labels) → metric 반환.\n"),
     code("""def train_logreg_tfidf(tr_t, tr_y, te_t, te_y, max_features=20000):
@@ -331,7 +369,42 @@ def train_xgb_tfidf(tr_t, tr_y, te_t, te_y, max_features=20000):
                         random_state=42, n_jobs=-1).fit(Xtr, tr_y)
     return r2_score(te_y, clf.predict(Xte))
 """),
-    code("""# TextCNN — 분류/회귀 head 교체
+    code("""# ============================================================
+# TextCNN — 분류/회귀 head 교체 (ADR-016/017 §3-2 사전등록)
+# ============================================================
+class _SimpleTokenizer:
+    \"\"\"random init embedding용 whitespace 토큰화 + 단순 vocab.
+
+    DistilBERT BPE와 다르지만 TextCNN baseline에서는 충분.
+    UNK=1, PAD=0 고정. max_len truncation.
+    \"\"\"
+    PAD, UNK = 0, 1
+
+    def __init__(self, max_vocab=20000):
+        self.max_vocab = max_vocab
+        self.itos = ['[PAD]', '[UNK]']
+        self.stoi = {'[PAD]': 0, '[UNK]': 1}
+
+    def fit(self, texts):
+        from collections import Counter
+        cnt = Counter()
+        for t in texts:
+            cnt.update(t.split())
+        for tok, _ in cnt.most_common(self.max_vocab - 2):
+            self.stoi[tok] = len(self.itos)
+            self.itos.append(tok)
+        return self
+
+    def encode(self, text, max_len):
+        ids = [self.stoi.get(tok, self.UNK) for tok in text.split()[:max_len]]
+        if len(ids) < max_len:
+            ids = ids + [self.PAD] * (max_len - len(ids))
+        return ids
+
+    def __len__(self):
+        return len(self.itos)
+
+
 class TextCNN(nn.Module):
     def __init__(self, vocab_size, n_class, emb=128, kernels=(3, 4, 5), filters=100,
                  dropout=0.5, regression=False):
@@ -347,30 +420,122 @@ class TextCNN(nn.Module):
         x = self.emb(x).transpose(1, 2)
         x = torch.cat([torch.max(torch.relu(c(x)), dim=2).values for c in self.convs], dim=1)
         x = self.drop(x)
-        return self.fc(x).squeeze(-1) if self.regression else self.fc(x)
+        out = self.fc(x)
+        return out.squeeze(-1) if self.regression else out
 
 
-# 실제 학습 루프는 길어 별도 함수로
-def train_textcnn(tr_t, tr_y, te_t, te_y, regression=False, epochs=10, batch=64, lr=1e-3):
-    # tokenizer build, padding, train loop, eval
-    # ... (구현 예정, GPU 환경에서)
-    pass
+def train_textcnn(tr_t, tr_y, te_t, te_y, regression=False, epochs=10,
+                  batch=64, lr=1e-3, max_len=256, emb=128, filters=100,
+                  device=None):
+    \"\"\"TextCNN finetune. 분류 → accuracy, 회귀 → R².\"\"\"
+    device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
+    tok = _SimpleTokenizer().fit(tr_t)
+
+    def to_tensor(texts, ys):
+        X = torch.tensor([tok.encode(t, max_len) for t in texts], dtype=torch.long)
+        if regression:
+            y = torch.tensor(list(ys), dtype=torch.float32)
+        else:
+            y = torch.tensor(list(ys), dtype=torch.long)
+        return X, y
+
+    Xtr, ytr = to_tensor(tr_t, tr_y)
+    Xte, yte = to_tensor(te_t, te_y)
+
+    n_class = 1 if regression else int(max(int(max(tr_y)), int(max(te_y))) + 1)
+    model = TextCNN(len(tok), n_class, emb=emb, filters=filters, regression=regression).to(device)
+    opt = torch.optim.Adam(model.parameters(), lr=lr)
+    loss_fn = nn.MSELoss() if regression else nn.CrossEntropyLoss()
+
+    loader = DataLoader(TensorDataset(Xtr, ytr), batch_size=batch, shuffle=True)
+    for ep in range(epochs):
+        model.train()
+        for xb, yb in loader:
+            xb, yb = xb.to(device), yb.to(device)
+            opt.zero_grad()
+            pred = model(xb)
+            loss = loss_fn(pred, yb)
+            loss.backward()
+            opt.step()
+
+    model.eval()
+    with torch.no_grad():
+        preds = []
+        for i in range(0, len(Xte), batch):
+            xb = Xte[i:i + batch].to(device)
+            out = model(xb)
+            if regression:
+                preds.append(out.cpu().numpy())
+            else:
+                preds.append(out.argmax(dim=1).cpu().numpy())
+        preds = np.concatenate(preds)
+
+    if regression:
+        return float(r2_score(yte.numpy(), preds))
+    return float(accuracy_score(yte.numpy(), preds))
 """),
-    code("""# Transformer (DistilBERT/BERT/RoBERTa) — head 교체로 분류/회귀 둘 다 처리
+    code("""# ============================================================
+# Transformer (DistilBERT/BERT/RoBERTa) — head 교체로 분류/회귀 둘 다 처리
+# ADR-016/017 §3-2 사전등록 (max_len=256, batch=32, epoch=3, lr=2e-5, AdamW)
+# ============================================================
 def train_transformer(model_id, tr_t, tr_y, te_t, te_y, regression=False,
-                       max_len=256, epochs=3, batch=32, lr=2e-5):
+                      max_len=256, batch=32, epochs=3, lr=2e-5,
+                      weight_decay=0.01, output_dir=None):
+    \"\"\"HuggingFace AutoModelForSequenceClassification finetune.\"\"\"
     from transformers import (
         AutoTokenizer, AutoModelForSequenceClassification,
-        Trainer, TrainingArguments,
+        Trainer, TrainingArguments, DataCollatorWithPadding,
     )
-    n_label = 1 if regression else len(set(tr_y))
+    from datasets import Dataset
+
+    n_label = 1 if regression else int(max(int(max(tr_y)), int(max(te_y))) + 1)
     tok = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForSequenceClassification.from_pretrained(
         model_id, num_labels=n_label,
         problem_type='regression' if regression else 'single_label_classification')
-    # tokenize, Trainer, train, eval
-    # ... (구현 예정)
-    pass
+
+    def to_hf(texts, ys):
+        return Dataset.from_dict({
+            'text': list(texts),
+            'labels': [float(y) for y in ys] if regression else [int(y) for y in ys],
+        })
+
+    def tokenize(batch):
+        return tok(batch['text'], truncation=True, max_length=max_len)
+
+    ds_tr = to_hf(tr_t, tr_y).map(tokenize, batched=True, remove_columns=['text'])
+    ds_te = to_hf(te_t, te_y).map(tokenize, batched=True, remove_columns=['text'])
+
+    args = TrainingArguments(
+        output_dir=output_dir or f'./_tmp_{os.getpid()}',
+        num_train_epochs=epochs,
+        per_device_train_batch_size=batch,
+        per_device_eval_batch_size=batch,
+        learning_rate=lr,
+        weight_decay=weight_decay,
+        logging_strategy='no',
+        save_strategy='no',
+        report_to='none',
+        seed=42,
+    )
+
+    def metric_fn(eval_pred):
+        preds, labels = eval_pred
+        if regression:
+            preds = preds.squeeze(-1) if preds.ndim > 1 else preds
+            return {'r2': float(r2_score(labels, preds))}
+        return {'accuracy': float(accuracy_score(labels, preds.argmax(axis=-1)))}
+
+    trainer = Trainer(
+        model=model, args=args,
+        train_dataset=ds_tr, eval_dataset=ds_te,
+        tokenizer=tok,
+        data_collator=DataCollatorWithPadding(tok),
+        compute_metrics=metric_fn,
+    )
+    trainer.train()
+    metrics = trainer.evaluate()
+    return metrics.get('eval_r2' if regression else 'eval_accuracy', float('nan'))
 """),
     md("## 2. 학습 스윕\n\n02의 sweep 결과(polluted texts/labels)를 직접 메모리에서 사용하거나 ↓ 처럼 csv에서 재구성.\n"),
     code("""# 학습 루프 — Colab GPU 환경에서 큐로 백그라운드 실행
@@ -407,13 +572,22 @@ ADR-016 §6 / ADR-017 §6 검증 — 02의 DSC + 03의 train metric을 join → 
 ---
 """),
     md("## 0. import + 결과 csv 로드\n"),
-    code("""import pandas as pd
+    code("""from google.colab import drive
+drive.mount('/content/drive', force_remount=False)
+
+import sys, os
+import pandas as pd
 import numpy as np
 from scipy.stats import pearsonr, spearmanr
 
-dsc_cls   = pd.read_csv('results/text_cls_dsc_sweep.csv')
-dsc_reg   = pd.read_csv('results/text_reg_dsc_sweep.csv')
-train_m   = pd.read_csv('results/text_train_metrics.csv')
+BASE = '/content/drive/MyDrive/capstone/dsc'
+if BASE not in sys.path:
+    sys.path.insert(0, BASE)
+RESULTS_DIR = f'{BASE}/results'
+
+dsc_cls = pd.read_csv(f'{RESULTS_DIR}/text_cls_dsc_sweep.csv')
+dsc_reg = pd.read_csv(f'{RESULTS_DIR}/text_reg_dsc_sweep.csv')
+train_m = pd.read_csv(f'{RESULTS_DIR}/text_train_metrics.csv')
 
 # join key: (dataset, polluter, level, seed)
 JOIN_KEYS = ['dataset', 'polluter', 'level', 'seed']
