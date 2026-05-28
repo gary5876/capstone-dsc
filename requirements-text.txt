@@ -7,10 +7,14 @@
 #     pip install -r requirements-text.txt
 
 # 임베딩 (DistilBERT-base-uncased, ADR-016 §3-2)
-transformers>=4.30,<5.0
-# HuggingFace dataset loader (ag_news / imdb / 20_newsgroups / yelp_review_full / sst5 / amazon_reviews_multi)
-datasets>=2.10,<3.0
+transformers>=4.30
+# HuggingFace dataset loader (ag_news / imdb / 20_newsgroups / yelp_review_full / sst5 / amazon_reviews_multi_en)
+# 주의: mteb/amazon_reviews_multi는 dataset script(.py) 기반이라 datasets >=4.x에서 차단됨.
+# ADR-017 amendment(2026-05-28)로 SetFit/amazon_reviews_multi_en (parquet)로 미러 교체
+datasets>=2.10
 # tokenizer 의존성 (transformers가 자동 설치하기도 함, 명시)
 tokenizers>=0.13
+# Trainer + GPU/AMP 백엔드 (transformers 4.46+ Trainer 필수 의존)
+accelerate>=1.1.0
 # regression cell XGBoost+TFIDF 모델 (ADR-017 §3-2)
-xgboost>=1.7,<3.0
+xgboost>=1.7

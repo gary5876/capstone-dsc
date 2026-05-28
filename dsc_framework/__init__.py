@@ -87,6 +87,22 @@ except Exception as _e:
     compute_dsc_text_regression = None
 
 try:
+    from .text_trainers import (
+        CLASSIFICATION_MODELS, REGRESSION_MODELS,
+        train_logreg_tfidf, train_ridge_tfidf, train_textcnn,
+        train_transformer, train_xgb_tfidf,
+    )
+except Exception as _e:
+    _FAILED['text_trainers'] = repr(_e)
+    CLASSIFICATION_MODELS = None
+    REGRESSION_MODELS = None
+    train_logreg_tfidf = None
+    train_ridge_tfidf = None
+    train_textcnn = None
+    train_transformer = None
+    train_xgb_tfidf = None
+
+try:
     from .router import compute_dsc, select_profile
 except Exception as _e:
     _FAILED['router'] = repr(_e)
