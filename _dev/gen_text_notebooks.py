@@ -61,19 +61,60 @@ DSC v5 framework — text × classification (ADR-016) + text × regression (ADR-
 
 ---
 """),
-    md("## 0. 환경 설정\n\nColab T4 GPU 가정. 이미지 cell 노트북과 동일 BASE 패턴.\n"),
+    md("## 0. 환경 설정\n\nColab T4 GPU 가정. dsc/ 위치는 자동 검색 (G드라이브 어디에 있어도 OK).\n"),
     code("""# ============================================================
-# 0-1. Drive 마운트 + GPU 확인
+# 0-1. Drive 마운트 + dsc/ 자동 검색 + sys.path 등록
 # ============================================================
 from google.colab import drive
 drive.mount('/content/drive')
 
-import os, sys, json
+import os, sys, glob, json
 import numpy as np
 import pandas as pd
 import torch
 
-BASE = '/content/drive/MyDrive/capstone/dsc'
+
+def _find_dsc_base():
+    \"\"\"G드라이브에서 dsc_framework/__init__.py가 들어있는 디렉토리 찾기.
+
+    1) 알려진 후보 우선 (빠른 경로)
+    2) 깊이 3까지 명시 glob (recursive=True는 큰 Drive에서 느림)
+    Returns: 찾은 경로 또는 None.
+    \"\"\"
+    root = '/content/drive/MyDrive'
+    if not os.path.isdir(root):
+        return None
+    fast = [
+        f'{root}/capstone/dsc',
+        f'{root}/dsc',
+        f'{root}/capstone-dsc',
+    ]
+    for c in fast:
+        if os.path.isfile(f'{c}/dsc_framework/__init__.py'):
+            return c
+    for pattern in [
+        f'{root}/*/dsc_framework/__init__.py',
+        f'{root}/*/*/dsc_framework/__init__.py',
+        f'{root}/*/*/*/dsc_framework/__init__.py',
+    ]:
+        for hit in glob.glob(pattern):
+            return os.path.dirname(os.path.dirname(hit))
+    return None
+
+
+BASE = _find_dsc_base()
+if BASE is None:
+    drive_root = '/content/drive/MyDrive'
+    listing = os.listdir(drive_root) if os.path.isdir(drive_root) else []
+    raise RuntimeError(
+        'dsc_framework/ 폴더를 G드라이브에서 못 찾음.\\n'
+        '확인 사항:\\n'
+        '  1) G드라이브 클라이언트가 sync 완료 상태인지 (commit 직후면 잠시 대기 후 재시도).\\n'
+        '  2) Drive 마운트가 됐는지 — `!ls /content/drive/MyDrive` 출력 확인.\\n'
+        f'  현재 /content/drive/MyDrive 안 내용: {listing[:20]}\\n'
+        '  3) 위 1~2 모두 OK인데도 실패면 사용자 Drive에 dsc_framework 폴더 자체가 없음 → push/sync 재확인.'
+    )
+
 RESULTS_DIR = f'{BASE}/results'
 DATA_DIR = f'{BASE}/data/text'
 os.makedirs(RESULTS_DIR, exist_ok=True)
@@ -83,9 +124,9 @@ if BASE not in sys.path:
     sys.path.insert(0, BASE)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print(f'device: {device}')
-print(f'torch: {torch.__version__}')
-print(f'BASE: {BASE}  exists={os.path.isdir(BASE)}')
+print(f'BASE: {BASE}')
+print(f'  dsc_framework 폴더 내용:', os.listdir(f'{BASE}/dsc_framework')[:10])
+print(f'device: {device}, torch: {torch.__version__}')
 """),
     code("""# ============================================================
 # 0-2. 의존성 설치 (Colab 환경) — 패키지 설치 후 다음 셀부터 import
@@ -96,19 +137,10 @@ print(f'BASE: {BASE}  exists={os.path.isdir(BASE)}')
 # 0-3. dsc_framework / datasets import — 위 셀 실행 완료 후
 # ============================================================
 from datasets import load_dataset
-
-try:
-    from dsc_framework.text_cell import compute_dsc_text
-    from dsc_framework.text_cell_regression import compute_dsc_text_regression
-except ModuleNotFoundError as e:
-    raise RuntimeError(
-        f"dsc_framework import 실패. BASE 경로({BASE})가 dsc/ 디렉토리를 가리키는지 확인. "
-        f"sys.path={sys.path[:3]}"
-    ) from e
+from dsc_framework.text_cell import compute_dsc_text
+from dsc_framework.text_cell_regression import compute_dsc_text_regression
 
 print('dsc_framework import OK.')
-print('cuda:', torch.cuda.is_available(),
-      torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'n/a')
 """),
     md("## 1. 튜닝 dataset 로드\n\nADR-016 §3-1 / ADR-017 §3-1 freeze.\n"),
     code("""# 분류 트랙
@@ -217,13 +249,35 @@ Output: `results/text_cell_dsc_sweep.csv` (rows = dataset × polluter × level �
     code("""from google.colab import drive
 drive.mount('/content/drive', force_remount=False)
 
-import sys, os, json
+import sys, os, glob, json
 import numpy as np
 import pandas as pd
 
-BASE = '/content/drive/MyDrive/capstone/dsc'
+
+def _find_dsc_base():
+    root = '/content/drive/MyDrive'
+    if not os.path.isdir(root):
+        return None
+    for c in [f'{root}/capstone/dsc', f'{root}/dsc', f'{root}/capstone-dsc']:
+        if os.path.isfile(f'{c}/dsc_framework/__init__.py'):
+            return c
+    for pat in [f'{root}/*/dsc_framework/__init__.py',
+                f'{root}/*/*/dsc_framework/__init__.py',
+                f'{root}/*/*/*/dsc_framework/__init__.py']:
+        for hit in glob.glob(pat):
+            return os.path.dirname(os.path.dirname(hit))
+    return None
+
+
+BASE = _find_dsc_base()
+if BASE is None:
+    raise RuntimeError(
+        'dsc_framework 폴더 못 찾음. 01 노트북 0-1 셀의 진단 메시지 + '
+        'G드라이브 sync 상태 확인.'
+    )
 if BASE not in sys.path:
     sys.path.insert(0, BASE)
+RESULTS_DIR = f'{BASE}/results'
 
 from dsc_framework.text_cell import compute_dsc_text
 from dsc_framework.text_cell_regression import compute_dsc_text_regression
@@ -232,6 +286,7 @@ from dsc_framework.text_polluters import (
     ClassBalanceTextPolluter, LabelSwapTextPolluter,
     TargetDistributionSkewTextPolluter, TargetNoiseTextPolluter,
 )
+print(f'BASE: {BASE}')
 """),
     md("## 1. 스윕 설정 (ADR-016/017 freeze)\n"),
     code("""LEVEL_GRID = [0.0, 0.1, 0.25, 0.5, 0.75, 0.9]  # 6 단계, ADR-016 §3-3
@@ -329,7 +384,7 @@ Output: `results/text_train_metrics.csv` (rows = dataset × model × polluter ×
     code("""from google.colab import drive
 drive.mount('/content/drive', force_remount=False)
 
-import sys, os, json
+import sys, os, glob, json
 import numpy as np
 import pandas as pd
 import torch
@@ -339,12 +394,31 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.metrics import accuracy_score, f1_score, r2_score
 
-BASE = '/content/drive/MyDrive/capstone/dsc'
+
+def _find_dsc_base():
+    root = '/content/drive/MyDrive'
+    if not os.path.isdir(root):
+        return None
+    for c in [f'{root}/capstone/dsc', f'{root}/dsc', f'{root}/capstone-dsc']:
+        if os.path.isfile(f'{c}/dsc_framework/__init__.py'):
+            return c
+    for pat in [f'{root}/*/dsc_framework/__init__.py',
+                f'{root}/*/*/dsc_framework/__init__.py',
+                f'{root}/*/*/*/dsc_framework/__init__.py']:
+        for hit in glob.glob(pat):
+            return os.path.dirname(os.path.dirname(hit))
+    return None
+
+
+BASE = _find_dsc_base()
+if BASE is None:
+    raise RuntimeError('dsc_framework 폴더 못 찾음. 01 노트북 0-1 셀 진단 참조.')
 if BASE not in sys.path:
     sys.path.insert(0, BASE)
+RESULTS_DIR = f'{BASE}/results'
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print('device:', device)
+print(f'BASE: {BASE}, device: {device}')
 """),
     md("## 1. 모델 학습 함수\n\n각 모델은 (train_texts, train_labels, test_texts, test_labels) → metric 반환.\n"),
     code("""def train_logreg_tfidf(tr_t, tr_y, te_t, te_y, max_features=20000):
@@ -575,12 +649,30 @@ ADR-016 §6 / ADR-017 §6 검증 — 02의 DSC + 03의 train metric을 join → 
     code("""from google.colab import drive
 drive.mount('/content/drive', force_remount=False)
 
-import sys, os
+import sys, os, glob
 import pandas as pd
 import numpy as np
 from scipy.stats import pearsonr, spearmanr
 
-BASE = '/content/drive/MyDrive/capstone/dsc'
+
+def _find_dsc_base():
+    root = '/content/drive/MyDrive'
+    if not os.path.isdir(root):
+        return None
+    for c in [f'{root}/capstone/dsc', f'{root}/dsc', f'{root}/capstone-dsc']:
+        if os.path.isfile(f'{c}/dsc_framework/__init__.py'):
+            return c
+    for pat in [f'{root}/*/dsc_framework/__init__.py',
+                f'{root}/*/*/dsc_framework/__init__.py',
+                f'{root}/*/*/*/dsc_framework/__init__.py']:
+        for hit in glob.glob(pat):
+            return os.path.dirname(os.path.dirname(hit))
+    return None
+
+
+BASE = _find_dsc_base()
+if BASE is None:
+    raise RuntimeError('dsc_framework 폴더 못 찾음. 01 노트북 0-1 셀 진단 참조.')
 if BASE not in sys.path:
     sys.path.insert(0, BASE)
 RESULTS_DIR = f'{BASE}/results'
