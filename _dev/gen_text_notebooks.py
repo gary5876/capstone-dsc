@@ -125,7 +125,23 @@ if BASE not in sys.path:
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'BASE: {BASE}')
-print(f'  dsc_framework 폴더 내용:', os.listdir(f'{BASE}/dsc_framework')[:10])
+fw_contents = sorted(f for f in os.listdir(f'{BASE}/dsc_framework') if not f.startswith('_'))
+print(f'  dsc_framework 폴더 ({len(fw_contents)}개): {fw_contents}')
+
+REQUIRED_FILES = [
+    'shared_metrics.py', 'classification_cell.py', 'regression_cell.py',
+    'image_cell.py', 'text_cell.py', 'text_cell_regression.py',
+    'column_detection.py', 'data_type_detection.py', 'router.py',
+    'text_polluters', 'image_polluters',
+]
+missing = [f for f in REQUIRED_FILES if not os.path.exists(f'{BASE}/dsc_framework/{f}')]
+if missing:
+    raise RuntimeError(
+        f'dsc_framework/ 폴더는 있지만 다음 파일들이 sync 안 됨: {missing}\\n'
+        '→ G드라이브 클라이언트에서 sync 완료될 때까지 대기 후 재실행.\\n'
+        '→ 강제 sync: G드라이브 폴더 열고 새로고침 또는 클라이언트 재시작.\\n'
+        '→ Colab Drive view가 stale일 수 있음: drive.flush_and_unmount() 후 재마운트.'
+    )
 print(f'device: {device}, torch: {torch.__version__}')
 """),
     code("""# ============================================================
@@ -136,11 +152,29 @@ print(f'device: {device}, torch: {torch.__version__}')
     code("""# ============================================================
 # 0-3. dsc_framework / datasets import — 위 셀 실행 완료 후
 # ============================================================
+import warnings
+warnings.simplefilter('default')
+
 from datasets import load_dataset
-from dsc_framework.text_cell import compute_dsc_text
-from dsc_framework.text_cell_regression import compute_dsc_text_regression
+
+# dsc_framework는 robust __init__.py라 일부 cell 누락 시 warning만 발생.
+# text_cell이 진짜 못 import되면 ModuleNotFoundError raise — 그 경우 진단.
+try:
+    from dsc_framework.text_cell import compute_dsc_text
+    from dsc_framework.text_cell_regression import compute_dsc_text_regression
+except ModuleNotFoundError as e:
+    fw = f'{BASE}/dsc_framework'
+    have = sorted(os.listdir(fw)) if os.path.isdir(fw) else []
+    raise RuntimeError(
+        f'text_cell import 실패: {e}\\n'
+        f'dsc_framework/ 안 파일: {have}\\n'
+        '→ shared_metrics.py / text_cell.py 등 의존 파일이 Drive에 있는지 확인. '
+        'sync 미완료면 잠시 대기 후 재실행.'
+    ) from e
 
 print('dsc_framework import OK.')
+print('compute_dsc_text:', compute_dsc_text)
+print('compute_dsc_text_regression:', compute_dsc_text_regression)
 """),
     md("## 1. 튜닝 dataset 로드\n\nADR-016 §3-1 / ADR-017 §3-1 freeze.\n"),
     code("""# 분류 트랙
