@@ -15,7 +15,7 @@ v5 마스터플랜(2026-04-27)에서 멀티모달(text/image/audio)은 캡스톤
 
 1. **최소 이미지 cell은 캡스톤에 포함**
 2. 멀티모달까지는 stretch goal
-3. GPU는 Colab Pay-as-you-go (학교 카드 결제) 또는 Colab Pro+로 확보
+3. GPU는 Colab Pay-as-you-go 또는 Colab Pro+로 확보
 
 framework 주장 강화 측면에서도 (tabular×classification, tabular×regression, **image×classification**) 3개 cell이면 학술 instance가 더 견고해진다.
 

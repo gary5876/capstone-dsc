@@ -165,7 +165,7 @@ text × classification은 framework "강한 버전"의 4번째 instance가 되�
 **최소 범위 (반드시)**:
 - 3 dataset × 5 model × 5 polluter × 6 level = 450 학습 + 18 baseline (clean) = 468건
 - T4 GPU 기준 transformer 1 finetune ≈ 5~20분 (epoch=3, batch=32, max_len=256), CNN/LogReg는 1분 이내
-- 총 GPU 시간 추정 = 450 × (3 × 10분 + 2 × 1분) / 5 ≈ 30~50시간. Colab Pro+ 또는 학교 카드 Pay-as-you-go 필요
+- 총 GPU 시간 추정 = 450 × (3 × 10분 + 2 × 1분) / 5 ≈ 30~50시간. Colab Pro+ 또는 Pay-as-you-go GPU 예산 필요
 
 **Stretch goal (시간 여유 시)**:
 - 4번째 데이터셋(Yahoo Answers 등) 추가
