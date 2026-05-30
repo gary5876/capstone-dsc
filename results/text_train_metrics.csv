@@ -1,0 +1,4 @@
+dataset,task,model,polluter,level,seed,metric,error,elapsed_s
+ag_news,classification,logreg_tfidf,completeness_text,0.0,42,0.812,,3.67
+ag_news,classification,textcnn,completeness_text,0.0,42,0.702,,219.84
+ag_news,classification,distilbert,completeness_text,0.0,42,0.89,,5565.42

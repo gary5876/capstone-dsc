@@ -1,5 +1,4 @@
 dataset,polluter,level,score,grade,completeness,uniqueness,validity,consistency,outlier_ratio,class_balance,feature_correlation,label_consistency,feature_informativeness
-TelcoCustomerChurn,none,0.0,80.75,B,1.0,1.0,1.0,1.0,1.0,0.5307,1.0,0.2721,1.0
 TelcoCustomerChurn,completeness,0.1,78.46,B,0.9051,1.0,1.0,1.0,1.0,0.5307,1.0,0.2527,1.0
 TelcoCustomerChurn,uniqueness,0.1,75.08,B,1.0,0.6666,1.0,1.0,1.0,0.5308,1.0,0.2387,1.0
 TelcoCustomerChurn,feature_accuracy,0.1,79.78,B,1.0,1.0,1.0,1.0,0.9999,0.5307,1.0,0.2687,0.9096
@@ -30,7 +29,6 @@ TelcoCustomerChurn,uniqueness,0.95,67.72,C,1.0,0.1667,1.0,1.0,1.0,0.5307,1.0,0.2
 TelcoCustomerChurn,feature_accuracy,0.95,69.29,C,1.0,1.0,1.0,1.0,0.9441,0.5307,1.0,0.0497,0.3268
 TelcoCustomerChurn,consistent_repr,0.95,71.25,C,1.0,1.0,1.0,0.0501,1.0,0.5307,1.0,0.2721,1.0
 TelcoCustomerChurn,class_balance,0.95,70.76,C,1.0,1.0,1.0,1.0,1.0,0.0502,1.0,0.1099,0.8064
-SouthGermanCredit,none,0.0,71.44,C,1.0,1.0,1.0,1.0,0.9408,0.6,1.0,0.0869,0.3995
 SouthGermanCredit,completeness,0.1,68.76,C,0.9,1.0,1.0,1.0,0.9121,0.6,1.0,0.0872,0.3457
 SouthGermanCredit,uniqueness,0.1,65.97,C,1.0,0.6667,1.0,1.0,0.9389,0.6,1.0,0.0869,0.3538
 SouthGermanCredit,feature_accuracy,0.1,70.09,C,1.0,1.0,1.0,1.0,0.9375,0.6,1.0,0.0661,0.3083
@@ -61,7 +59,6 @@ SouthGermanCredit,uniqueness,0.95,58.69,D,1.0,0.1667,1.0,1.0,0.9398,0.6,1.0,0.08
 SouthGermanCredit,feature_accuracy,0.95,65.37,C,1.0,1.0,1.0,1.0,0.6917,0.6,1.0,0.0,0.0912
 SouthGermanCredit,consistent_repr,0.95,62.68,C,1.0,1.0,1.0,0.05,0.9408,0.6,1.0,0.0869,0.4735
 SouthGermanCredit,class_balance,0.95,65.82,C,1.0,1.0,1.0,1.0,0.9576,0.05,1.0,0.0,0.5537
-letter,none,0.0,91.59,A,1.0,0.9401,1.0,1.0,0.9543,0.9539,1.0,0.6591,1.0
 letter,completeness,0.1,82.24,B,0.9,0.996,1.0,1.0,0.89,0.9539,1.0,0.2656,1.0
 letter,uniqueness,0.1,85.9,B,1.0,0.6665,1.0,1.0,0.9544,0.7351,1.0,0.6888,1.0
 letter,feature_accuracy,0.1,90.89,A,1.0,1.0,1.0,1.0,0.9396,0.9539,1.0,0.5828,1.0
@@ -86,3 +83,6 @@ letter,completeness,0.95,40.01,D,0.05,0.3291,1.0,1.0,0.3445,0.9539,1.0,0.0565,0.
 letter,uniqueness,0.95,78.07,B,1.0,0.1667,1.0,1.0,0.9546,0.7346,1.0,0.6727,1.0
 letter,feature_accuracy,0.95,69.91,C,1.0,1.0,1.0,1.0,0.6048,0.9539,1.0,0.0266,0.1818
 letter,class_balance,0.95,84.71,B,1.0,0.9569,1.0,1.0,0.9529,0.0621,1.0,0.7488,1.0
+TelcoCustomerChurn,none,0.0,79.73,B,1.0,1.0,0.9999,1.0,1.0,0.5307,1.0,0.2214,1.0
+SouthGermanCredit,none,0.0,71.16,C,1.0,1.0,1.0,1.0,0.945,0.6,1.0,0.0771,0.389
+letter,none,0.0,91.94,A,1.0,0.9334,1.0,1.0,0.9671,0.9542,1.0,0.6783,1.0

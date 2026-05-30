@@ -1,0 +1,7 @@
+dataset,task,n,score,grade,completeness_text,uniqueness,validity,consistency,outlier_ratio,class_balance,sample_quality_text,feature_correlation,label_consistency,feature_informativeness,target_distribution_quality,target_smoothness,feature_informativeness_reg
+ag_news,classification,3000,91.11,A,1.0,1.0,1.0,0.577,0.979,0.9213,0.999,1.0,0.7064,1.0,,,
+imdb,classification,3000,82.97,B,1.0,1.0,1.0,0.2917,0.926,0.9927,0.9991,1.0,0.3484,1.0,,,
+20news,classification,3000,77.45,B,0.968,0.968,0.968,0.13,0.913,0.7267,0.9491,1.0,0.3348,1.0,,,
+yelp_full,regression,3000,80.51,B,1.0,1.0,1.0,0.2695,0.954,,0.99,1.0,,,0.6984,0.378,1.0
+amazon_en,regression,3000,78.21,B,1.0,1.0,1.0,0.3126,0.952,,0.9126,1.0,,,0.698,0.3111,1.0
+sst5,regression,3000,75.93,B,1.0,1.0,1.0,0.331,0.999,,0.8878,1.0,,,0.6788,0.2088,1.0
