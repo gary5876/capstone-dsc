@@ -29,28 +29,60 @@
 
 이 저장소의 `dsc_framework/` 패키지는 v5 task-conditional DSC 엔진을 **Python 라이브러리**로 제공합니다. 자체 HTTP/MQ 서버는 미제공 — 호출 측이 import하여 함수로 직접 사용.
 
+### 호출 — `compute_dsc` 단일 진입점
+
+데이터 종류와 무관하게 `compute_dsc` 하나로 호출합니다. `data_type`/`task`는 미지정 시 자동감지됩니다.
+
 ```python
 from dsc_framework import compute_dsc
 
-result = compute_dsc(
-    df=df,             # pandas DataFrame (tabular) 또는 images=..., labels=... (image)
-    data_type=None,    # 'tabular' | 'image'. 미지정 시 자동감지
-    task=None,         # 'classification' | 'regression'. 미지정 시 자동감지
-    weights=None,      # dict. 미지정 시 cell별 사전등록 가중치 사용
-)
-# {'score': 70.06, 'grade': 'C', 'task': 'classification', 'data_type': 'tabular',
-#  'completeness': ..., 'uniqueness': ..., ..., 'label_consistency': ..., ...}
+# tabular — DataFrame만 넘기면 컬럼·task 자동감지
+result = compute_dsc(df=df)
+
+# image
+result = compute_dsc(images=images, labels=labels, data_type='image')
+
+# text 분류 / 회귀 (회귀는 task 명시)
+result = compute_dsc(texts=texts, labels=labels,  data_type='text')
+result = compute_dsc(texts=texts, targets=targets, data_type='text', task='regression')
+
+# 가중치 직접 지정 (미지정 시 cell별 사전등록 가중치 사용)
+result = compute_dsc(df=df, task='classification', weights=custom_w)
 ```
 
-지원 cell:
-- `('tabular', 'classification')` — 9개 지표, ADR-009 사전등록
-- `('tabular', 'regression')` — 9개 지표, ADR-011 사전등록
-- `('image', 'classification')` — 10개 지표, ADR-014 사전등록
+### 반환 구조
+
+```python
+# {
+#   'score': 70.06, 'grade': 'C',
+#   'task': 'classification', 'data_type': 'tabular',
+#   'completeness': 0.95, 'uniqueness': 0.88, ...,   # ← 평평 키 (하위호환 유지)
+#   'metrics': {'completeness': 0.95, ...},          # ← 동일 내용, cell 종류 무관 순회용
+# }
+
+print(result['score'], result['grade'])             # 종합 점수·등급
+for name, value in result['metrics'].items():        # 지표별 점수 순회 (cell 분기 불필요)
+    print(name, value)
+```
+
+`metrics` 키는 cell마다 다른 지표 이름(`completeness_image`, `target_smoothness` 등)을 종류 구분 없이 순회하기 위한 것입니다. 평평 키는 v3.2 호환을 위해 함께 유지됩니다.
+
+### 지원 cell (5종)
+
+| (data_type, task) | 지표 수 | 사전등록 | 대표 가중치 |
+|---|---|---|---|
+| `(tabular, classification)` | 9 | ADR-009/011 | completeness 0.20, label_consistency 0.20 |
+| `(tabular, regression)` | 9 | — | target_smoothness 0.20 |
+| `(image, classification)` | 10 | ADR-014 | sample_quality_image 0.15, label_consistency 0.20 |
+| `(text, classification)` | 10 | ADR-016 | sample_quality_text 0.15 |
+| `(text, regression)` | 10 | ADR-017 | target_smoothness 0.20 |
+
+가중치 dict는 `DEFAULT_WEIGHTS_CLASSIFICATION`/`_REGRESSION`/`_IMAGE`/`_TEXT`/`_TEXT_REG`로 직접 import할 수 있습니다. 모두 합계 1.00.
 
 **aidq-platform v3.2 → v5 전환 시 변경점·MQ 메시지 → `compute_dsc` 매핑·지표 schema 전체는 통합 가이드 참조:**
 [`documents/reports/20260515-01-aidq-platform-v5-통합-가이드.md`](documents/reports/20260515-01-aidq-platform-v5-통합-가이드.md)
 
-라이브러리 의존성 (최소): `pandas`, `numpy`, `scikit-learn`, `scipy`. 이미지 cell 호출 시 추가 lazy import: `torch`, `torchvision`, `Pillow`, `opencv-python`.
+라이브러리 의존성 (최소): `pandas`, `numpy`, `scikit-learn`, `scipy`. 이미지 cell 호출 시 추가 lazy import: `torch`, `torchvision`, `Pillow`, `opencv-python`. 텍스트 cell 호출 시: `torch`, `transformers`.
 
 ---
 
@@ -92,10 +124,16 @@ dsc/
 │   ├── classification_cell.py    ← tabular 분류 cell (9개 지표)
 │   ├── regression_cell.py        ← tabular 회귀 cell (9개 지표)
 │   ├── image_cell.py             ← 이미지 cell (10개 지표, torch lazy import)
-│   ├── shared_metrics.py         ← cell 공통 지표 함수
+│   ├── text_cell.py              ← 텍스트 분류 cell (10개 지표, transformers lazy import)
+│   ├── text_cell_regression.py   ← 텍스트 회귀 cell (10개 지표)
+│   ├── text_trainers.py          ← 텍스트 sweep용 모델 (TF-IDF/TextCNN/Transformer)
+│   ├── shared_metrics.py         ← cell 공통 지표 함수 + to_grade 등급 변환
 │   ├── column_detection.py       ← target/수치형/범주형/task 자동감지
-│   ├── data_type_detection.py    ← tabular vs image 자동감지
-│   └── llm_weight_generator.py   ← ADR-015 LLM 가중치 생성기
+│   ├── data_type_detection.py    ← tabular/image/text 자동감지
+│   ├── llm_weight_generator.py   ← ADR-015 LLM 가중치 생성기
+│   ├── prompts/                  ← LLM 가중치 생성기 프롬프트 템플릿
+│   ├── image_polluters/          ← 이미지 오염 주입 5종 (검증용)
+│   └── text_polluters/           ← 텍스트 오염 주입 7종 (검증용)
 │
 ├── notebooks/                    ← 실험 파이프라인 (4단계)
 │   ├── 01_setup_and_baseline.ipynb

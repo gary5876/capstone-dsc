@@ -299,8 +299,7 @@ from dsc_framework import compute_dsc, auto_detect_columns  # noqa: F401
 +    'task': result['task'],            # 'classification' or 'regression'
 +    'data_type': result['data_type'],  # 'tabular'
 -    'metrics': {k: v for k, v in result.items() if k not in ('score', 'grade')},
-+    'metrics': {k: v for k, v in result.items()
-+                if k not in ('score', 'grade', 'task', 'data_type')},
++    'metrics': result['metrics'],      # v5: 엔진이 metrics dict 직접 제공
      'columns': [...],
      'summary': f'종합 점수 {result["score"]}점 ({result["grade"]}등급). '
 -               f'분석 컬럼 {len(df.columns)-1}개, 데이터 행 {len(df)}건.',
@@ -311,7 +310,7 @@ from dsc_framework import compute_dsc, auto_detect_columns  # noqa: F401
  }
 ```
 
-`metrics`에서 `task`/`data_type` 제외하는 것이 핵심 — 이 두 키는 metrics가 아니라 메타정보.
+엔진 반환 dict는 `score`·`grade`·`task`·`data_type`과 함께 평평한 metric 키를 그대로 노출하며(v3.2 호환), 동일 내용을 `result['metrics']` dict로도 제공한다. 재포장 시 평평 키를 순회·제외 컴프리헨션으로 거르면 `metrics` 키 자체가 섞여 중첩되므로, `result['metrics']`를 그대로 사용한다.
 
 ---
 

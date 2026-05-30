@@ -179,7 +179,8 @@ result = compute_dsc(df=df)
 # {'score': 70.06, 'grade': 'C', 'task': 'classification', 'data_type': 'tabular',
 #  'completeness': ..., 'uniqueness': ..., 'validity': ..., 'consistency': ...,
 #  'outlier_ratio': ..., 'class_balance': ..., 'feature_correlation': ...,
-#  'label_consistency': ..., 'feature_informativeness': ...}
+#  'label_consistency': ..., 'feature_informativeness': ...,
+#  'metrics': {평평 키와 동일 내용 — cell 종류 무관 순회용}}
 ```
 
 ### 6-2. 회귀 자동감지
@@ -247,6 +248,7 @@ result = compute_dsc(images=images, labels=labels, data_type='image')
 
 ## 9. 참고
 
+- 시스템 통신 흐름 (전체 endpoint·MQ·S3·LLM 호출 경로): [`20260525-01-aidq-platform-시스템-통신-흐름.md`](20260525-01-aidq-platform-시스템-통신-흐름.md)
 - v5 framework: `dsc/dsc_framework/`
 - 사전등록 문서: `dsc/documents/decisions/ADR-009`, `ADR-011`, `ADR-014`, `ADR-015`
 - v4 결과 보고 (r=0.598): `dsc/documents/reports/20260427-04-v4-정식결과확정.md`
