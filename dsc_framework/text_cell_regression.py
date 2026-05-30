@@ -26,6 +26,8 @@ from math import log
 
 import numpy as np
 
+from .shared_metrics import to_grade
+
 from .text_cell import (
     DEFAULT_WEIGHTS_TEXT,
     _calc_feature_correlation_from_feats,
@@ -190,9 +192,6 @@ def compute_dsc_text_regression(texts, targets, weights=None,
         metrics['feature_informativeness_reg'] = 1.0
 
     score = sum(metrics[k] * w[k] for k in w) * 100
-    if score >= 90:   grade = 'A'
-    elif score >= 75: grade = 'B'
-    elif score >= 60: grade = 'C'
-    else:             grade = 'D'
-    return {'score': round(score, 2), 'grade': grade,
-            **{k: round(v, 4) for k, v in metrics.items()}}
+    rounded = {k: round(v, 4) for k, v in metrics.items()}
+    return {'score': round(score, 2), 'grade': to_grade(score),
+            **rounded, 'metrics': rounded}

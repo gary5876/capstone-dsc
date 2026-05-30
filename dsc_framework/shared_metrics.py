@@ -119,6 +119,17 @@ def calc_outlier_ratio(df, target_col, numerical_cols, reference_df=None):
     return float(np.mean(scores)) if scores else 1.0
 
 
+def to_grade(score):
+    """0~100 점수 → 등급. 사전등록 임계(90/75/60), 모든 cell 공유 단일 출처."""
+    if score >= 90:
+        return 'A'
+    if score >= 75:
+        return 'B'
+    if score >= 60:
+        return 'C'
+    return 'D'
+
+
 def calc_feature_correlation(df, target_col, numerical_cols, threshold=0.95):
     """고상관(>threshold) 피처 쌍이 없는 비율."""
     cols = [c for c in numerical_cols if c in df.columns]

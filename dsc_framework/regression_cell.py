@@ -18,7 +18,7 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 from .shared_metrics import (
     calc_completeness, calc_consistency, calc_feature_correlation,
-    calc_outlier_ratio, calc_uniqueness, calc_validity,
+    calc_outlier_ratio, calc_uniqueness, calc_validity, to_grade,
 )
 
 
@@ -205,12 +205,9 @@ def compute_dsc_regression(df, target_col, numerical_cols, categorical_cols,
             df, target_col, numerical_cols, categorical_cols),
     }
     score = sum(metrics[k] * w[k] for k in w) * 100
-    if score >= 90:   grade = 'A'
-    elif score >= 75: grade = 'B'
-    elif score >= 60: grade = 'C'
-    else:             grade = 'D'
-    return {'score': round(score, 2), 'grade': grade,
-            **{k: round(v, 4) for k, v in metrics.items()}}
+    rounded = {k: round(v, 4) for k, v in metrics.items()}
+    return {'score': round(score, 2), 'grade': to_grade(score),
+            **rounded, 'metrics': rounded}
 
 
 def compute_dsc_degradation(polluted_dsc, clean_dsc, weights=None):

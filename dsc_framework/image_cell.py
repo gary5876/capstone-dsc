@@ -29,6 +29,8 @@ from math import log
 
 import numpy as np
 
+from .shared_metrics import to_grade
+
 
 # =================================================================
 # 이미지 입력 정규화 helper
@@ -519,9 +521,6 @@ def compute_dsc_image(images, labels, weights=None,
         metrics['feature_informativeness'] = 1.0
 
     score = sum(metrics[k] * w[k] for k in w) * 100
-    if score >= 90:   grade = 'A'
-    elif score >= 75: grade = 'B'
-    elif score >= 60: grade = 'C'
-    else:             grade = 'D'
-    return {'score': round(score, 2), 'grade': grade,
-            **{k: round(v, 4) for k, v in metrics.items()}}
+    rounded = {k: round(v, 4) for k, v in metrics.items()}
+    return {'score': round(score, 2), 'grade': to_grade(score),
+            **rounded, 'metrics': rounded}
