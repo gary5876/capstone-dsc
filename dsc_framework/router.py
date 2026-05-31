@@ -12,6 +12,9 @@ from .classification_cell import (
 from .column_detection import auto_detect_columns
 from .data_type_detection import detect_data_type
 from .image_cell import DEFAULT_WEIGHTS_IMAGE, compute_dsc_image
+from .image_cell_regression import (
+    DEFAULT_WEIGHTS_IMAGE_REG, compute_dsc_image_regression,
+)
 from .regression_cell import (
     DEFAULT_WEIGHTS_REGRESSION, compute_dsc_regression,
 )
@@ -33,6 +36,10 @@ _PROFILES = {
     ('image', 'classification'): {
         'compute_fn': compute_dsc_image,
         'default_weights': DEFAULT_WEIGHTS_IMAGE,
+    },
+    ('image', 'regression'): {
+        'compute_fn': compute_dsc_image_regression,
+        'default_weights': DEFAULT_WEIGHTS_IMAGE_REG,
     },
     ('text', 'classification'): {
         'compute_fn': compute_dsc_text,
@@ -132,10 +139,15 @@ def compute_dsc(input_obj=None, df=None,
         return result
 
     elif data_type == 'image':
-        # images/labels 추출
+        # images/labels(또는 targets) 추출
         if images is None:
             if isinstance(input_obj, tuple) and len(input_obj) == 2:
-                images, labels = input_obj
+                images, second = input_obj
+                if labels is None and targets is None:
+                    if task == 'regression':
+                        targets = second
+                    else:
+                        labels = second
             elif hasattr(input_obj, '__len__'):
                 # PyTorch Dataset 가정 — (img, label) 튜플
                 images = []
@@ -147,11 +159,17 @@ def compute_dsc(input_obj=None, df=None,
                         images.append(item)
             else:
                 raise ValueError("images=... 명시 필요.")
+
         if task is None:
-            task = 'classification'  # 사전등록 (ADR-014)
+            # targets만 주어지면 회귀, 아니면 분류 폴백 (ADR-014)
+            task = 'regression' if (targets is not None and labels is None) else 'classification'
 
         profile = select_profile(('image', task))
-        result = profile['compute_fn'](images, labels, weights=weights, **kwargs)
+        if task == 'regression':
+            t = targets if targets is not None else labels
+            result = profile['compute_fn'](images, t, weights=weights, **kwargs)
+        else:
+            result = profile['compute_fn'](images, labels, weights=weights, **kwargs)
         result['task'] = task
         result['data_type'] = 'image'
         return result

@@ -61,6 +61,15 @@ except Exception as _e:
     compute_dsc_image = None
 
 try:
+    from .image_cell_regression import (
+        DEFAULT_WEIGHTS_IMAGE_REG, compute_dsc_image_regression,
+    )
+except Exception as _e:
+    _FAILED['image_cell_regression'] = repr(_e)
+    DEFAULT_WEIGHTS_IMAGE_REG = None
+    compute_dsc_image_regression = None
+
+try:
     from .regression_cell import (
         DEFAULT_WEIGHTS_REGRESSION, compute_dsc_degradation, compute_dsc_regression,
     )
@@ -125,12 +134,14 @@ __all__ = [
     'compute_dsc_classification',
     'compute_dsc_regression',
     'compute_dsc_image',
+    'compute_dsc_image_regression',
     'compute_dsc_text',
     'compute_dsc_text_regression',
     'compute_dsc_degradation',
     'DEFAULT_WEIGHTS_CLASSIFICATION',
     'DEFAULT_WEIGHTS_REGRESSION',
     'DEFAULT_WEIGHTS_IMAGE',
+    'DEFAULT_WEIGHTS_IMAGE_REG',
     'DEFAULT_WEIGHTS_TEXT',
     'DEFAULT_WEIGHTS_TEXT_REG',
 ]
