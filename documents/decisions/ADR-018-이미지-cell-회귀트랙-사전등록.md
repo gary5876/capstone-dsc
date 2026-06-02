@@ -31,7 +31,7 @@ tabular·text regression cell이 이미 메트릭 재정의 패턴을 검증했�
 
 | 데이터셋 | HuggingFace ID | 타겟(회귀) | 규모 | 역할 | 검증 |
 |---|---|---|---:|---|---|
-| **UTKFace** | `Subh775/UTKFace_demographics_V1` | age 0–116 (int→float) | 10,135 · 200×200 | **튜닝** | ✅ 2026-05-30 load_dataset 스트리밍 실제 성공, 컬럼 `image,age,gender,race` 확인 |
+| **UTKFace** | `nu-delta/utkface` | age (int→float) | 23,705 · 200×200 | **튜닝** | ✅ 2026-06-03 load_dataset 실측 성공, 컬럼 `image,age,gender,ethnicity`. (기존 `Subh775/UTKFace_demographics_V1`은 2026-06-03 Hub에서 삭제/비공개(401)되어 교체) |
 | **SCUT-FBP5500** | `MnLgt/scut-fbp5500` | beauty_score 1–5 (연속) | 5,500 | **held-out** | ✅ 2026-05-30 load_dataset 스트리밍 실제 성공, 컬럼 `image,beauty_score,...` 확인 |
 
 **선정 근거**:
@@ -166,7 +166,7 @@ dsc_framework/
 
 | 자원 | 상태 | 비고 |
 |---|---|---|
-| `Subh775/UTKFace_demographics_V1` | ✅ 실측 로드 성공 | parquet, viewer ON, remote code 불필요. age 0–116, 10,135행 |
+| `nu-delta/utkface` | ✅ 2026-06-03 실측 로드 성공 | parquet. age(int), 23,705행, 200×200 RGB. 기존 `Subh775/...V1`이 삭제/비공개(401)되어 교체 — 외부 리소스 변동 사례 |
 | `MnLgt/scut-fbp5500` | ✅ 실측 로드 성공 | beauty_score 1–5, 5,500행. 라이선스 연구용(other) |
 | ResNet18/EfficientNet-B0/MobileNetV3/ViT-Tiny pretrained | torchvision 내장 | image 분류 cell(ADR-014)과 공유. Colab에서 동작 확인됨 |
 | `torchvision` | Colab 필요 | 본 로컬 환경 미설치 → 임베딩 경로는 Colab 실행 |
