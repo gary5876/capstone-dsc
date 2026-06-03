@@ -99,4 +99,9 @@ clean test 임베딩은 데이터셋당 1회 추출·캐시.
 - 정형 회귀 노트북: 모델셋 probe 4종으로 교체, uniqueness 복제 상한.
 - freeze 갱신: 성능 측정 = 본 ADR 프로토콜. polluter/데이터셋/DSC 정의식은 ADR-014/016/017/018 그대로.
 
+## 8. 후속 발견·해결 — DSC additive 노이즈 blind spot (2026-06-03)
+
+probe 재설계로 이미지 회귀 검증 중, **probe가 DSC의 구조적 한계를 노출**: DSC가 노이즈(additive 열화)에 blind(`sample_quality_image`가 Laplacian↑를 "선명"으로 오판) → `noise_injection`에서 DSC 평평·probe 붕괴로 상관 깨짐(held r 0.42).
+**해결**: `signal_integrity` 메트릭 신설(Immerkær 노이즈 σ 추정), image cell 분류·회귀 추가. 로컬 시뮬 §2 최적화 held r 0.42→0.94. 상세: `documents/reports/20260603-01-DSC-노이즈-blindspot-진단과해결.md`. (메트릭 추가로 ADR-014/018 metric set 개정 — image 재실행 필요.)
+
 **관련**: ADR-014/016/017/018(성능측정 부분 supersede), plans/20260530-01(가중치 §2), 20260511-01(합격선).
