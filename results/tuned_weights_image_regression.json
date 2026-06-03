@@ -1,0 +1,20 @@
+{
+  "weights": {
+    "completeness_image": 0.10000000000000002,
+    "uniqueness": 0.02000000000000001,
+    "validity": 0.02000000000000001,
+    "consistency": 0.020000000000000004,
+    "outlier_ratio": 0.020000000000000014,
+    "target_distribution_quality": 0.2062976713922182,
+    "feature_correlation": 0.020000000000000004,
+    "target_smoothness": 0.33075754398861545,
+    "feature_informativeness_reg": 0.020000000000000018,
+    "sample_quality_image": 0.0907606219521907,
+    "signal_integrity": 0.15218416266697557
+  },
+  "tune": "UTKFace",
+  "held_out": "SCUT_FBP5500",
+  "perf": "probe_mean_R2",
+  "r_default_held": 0.6681258665845874,
+  "r_opt_held": 0.9506128763804506
+}
