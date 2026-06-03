@@ -1,0 +1,16 @@
+dataset,polluter,level,model,r2,r2_clipped
+CaliforniaHousing,none,0.0,LinearRegression,0.5966,0.5966
+CaliforniaHousing,none,0.0,RandomForestReg,0.8065,0.8065
+CaliforniaHousing,none,0.0,XGBoostReg,0.8327,0.8327
+CaliforniaHousing,none,0.0,SVR,0.733,0.733
+CaliforniaHousing,none,0.0,MLPReg,0.7397,0.7397
+BikeSharing,none,0.0,LinearRegression,0.4073,0.4073
+BikeSharing,none,0.0,RandomForestReg,0.945,0.945
+BikeSharing,none,0.0,XGBoostReg,0.9496,0.9496
+BikeSharing,none,0.0,SVR,0.4205,0.4205
+BikeSharing,none,0.0,MLPReg,0.9532,0.9532
+WineQuality,none,0.0,LinearRegression,0.2736,0.2736
+WineQuality,none,0.0,RandomForestReg,0.4905,0.4905
+WineQuality,none,0.0,XGBoostReg,0.4122,0.4122
+WineQuality,none,0.0,SVR,0.3872,0.3872
+WineQuality,none,0.0,MLPReg,0.0967,0.0967
