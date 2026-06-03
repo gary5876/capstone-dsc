@@ -463,6 +463,47 @@ def calc_sample_quality_image(images, blur_norm=200.0, contrast_norm=50.0,
 
 
 # =================================================================
+# signal_integrity — additive 노이즈 탐지 (ADR-019 진단 보완)
+# =================================================================
+
+def _immerkaer_sigma(gray_uint8):
+    """Immerkær(1996) 빠른 Gaussian 노이즈 sigma 추정. 3x3 마스크가 구조(엣지)를
+    상쇄해 노이즈만 추정 → blur/디테일엔 오발 안 하고, 노이즈 강도엔 σ를 복원."""
+    from scipy import ndimage
+    g = gray_uint8.astype(np.float64)
+    N = np.array([[1, -2, 1], [-2, 4, -2], [1, -2, 1]], dtype=np.float64)
+    conv = ndimage.convolve(g, N, mode='reflect')
+    H, W = g.shape
+    denom = 6.0 * max(1, W - 2) * max(1, H - 2)
+    return float(np.sqrt(np.pi / 2.0) * np.abs(conv).sum() / denom)
+
+
+def calc_signal_integrity(images, noise_norm=25.0, sample_cap=2000, random_state=1):
+    """이미지 additive 노이즈의 보수 지표. 1.0 = 노이즈 없음(clean·blur 포함),
+    0에 가까움 = 강한 노이즈. sample_quality_image(blur/contrast)가 못 잡고
+    오히려 노이즈를 '선명'으로 오판하는 가짜 고주파를 Immerkær 노이즈 σ 추정으로 탐지.
+    ADR-019 진단(DSC가 additive 열화에 blind) 대응.
+
+    score = mean_i( 1 - clip(σ_i / noise_norm, 0, 1) ). noise_norm 사전등록(조정 가능).
+    """
+    if len(images) == 0:
+        return 1.0
+    rng = np.random.RandomState(random_state)
+    if sample_cap and len(images) > sample_cap:
+        idx = rng.choice(len(images), sample_cap, replace=False)
+        sample = [images[i] for i in idx]
+    else:
+        sample = images
+    scores = []
+    for img in sample:
+        arr = _to_np_uint8(img)
+        gray = arr.mean(axis=-1).astype(np.uint8) if arr.ndim == 3 else arr
+        sigma = _immerkaer_sigma(gray)
+        scores.append(1.0 - min(1.0, sigma / noise_norm))
+    return float(np.mean(scores))
+
+
+# =================================================================
 # 가중치 + 통합 진입점
 # =================================================================
 
@@ -476,7 +517,8 @@ DEFAULT_WEIGHTS_IMAGE = {
     'feature_correlation':      0.05,
     'label_consistency':        0.20,
     'feature_informativeness':  0.10,
-    'sample_quality_image':     0.15,
+    'sample_quality_image':     0.10,
+    'signal_integrity':         0.05,
 }
 
 
@@ -503,6 +545,7 @@ def compute_dsc_image(images, labels, weights=None,
         'outlier_ratio':       calc_outlier_ratio(images, sample_cap=sample_cap, random_state=random_state),
         'class_balance':       calc_class_balance(labels),
         'sample_quality_image': calc_sample_quality_image(images, sample_cap=sample_cap, random_state=random_state),
+        'signal_integrity':    calc_signal_integrity(images, sample_cap=sample_cap, random_state=random_state),
     }
     if use_embeddings and len(images) >= 10:
         # ResNet18 feature를 1번만 추출, 3개 embedding 메트릭이 공유 (~3x 가속).

@@ -36,6 +36,7 @@ from .image_cell import (
     calc_consistency,
     calc_outlier_ratio,
     calc_sample_quality_image,
+    calc_signal_integrity,
     calc_uniqueness,
     calc_validity,
 )
@@ -143,13 +144,15 @@ DEFAULT_WEIGHTS_IMAGE_REG = {
     'target_smoothness':            DEFAULT_WEIGHTS_IMAGE['label_consistency'],
     'feature_informativeness_reg':  DEFAULT_WEIGHTS_IMAGE['feature_informativeness'],
     'sample_quality_image':         DEFAULT_WEIGHTS_IMAGE['sample_quality_image'],
+    'signal_integrity':             DEFAULT_WEIGHTS_IMAGE['signal_integrity'],
 }
 
 
 def compute_dsc_image_regression(images, targets, weights=None,
                                  use_embeddings=True,
                                  sample_cap=2000, random_state=1,
-                                 target_n_bins=10):
+                                 target_n_bins=10,
+                                 precomputed_feats=None):
     """DSC image regression cell 점수 (0~100) + 등급 + 지표별.
 
     Args:
@@ -172,10 +175,15 @@ def compute_dsc_image_regression(images, targets, weights=None,
         'outlier_ratio':               calc_outlier_ratio(images, sample_cap=sample_cap, random_state=random_state),
         'target_distribution_quality': calc_target_distribution_quality(t_arr, n_bins=target_n_bins),
         'sample_quality_image':        calc_sample_quality_image(images, sample_cap=sample_cap, random_state=random_state),
+        'signal_integrity':            calc_signal_integrity(images, sample_cap=sample_cap, random_state=random_state),
     }
     if use_embeddings and len(images) >= 10:
         # ResNet18 feature를 1번만 추출, 3개 embedding 메트릭이 공유.
-        feats, sample_idx = _extract_features(images, sample_cap=sample_cap, random_state=random_state)
+        # precomputed_feats=(feats, sample_idx) 주어지면 재사용 (probe와 임베딩 공유 → 중복 추출 제거).
+        if precomputed_feats is not None:
+            feats, sample_idx = precomputed_feats
+        else:
+            feats, sample_idx = _extract_features(images, sample_cap=sample_cap, random_state=random_state)
         t_sample = t_arr[sample_idx]
         metrics['feature_correlation'] = _calc_feature_correlation_from_feats(feats)
         metrics['target_smoothness'] = (
